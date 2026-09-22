@@ -21,7 +21,7 @@ class RendezVous {
         private RendezVousStatus $status = RendezVousStatus::PREVU
     ) {
         if ($this->dateHeureFin === null) {
-            // calcule la date de fin = début + durée en min
+            // calcule la date de fin = début + durée en minutes
             $this->dateHeureFin = (new DateTimeImmutable($this->dateHeureDebut->format('Y-m-d H:i:s')))
                 ->modify("+{$this->duree} minutes");
         }
@@ -33,7 +33,7 @@ class RendezVous {
     /**
      * annule le rendez-vous si les conditions métier sont respectées
      * 
-     * @throws StatusChangeNotAllowedException si le RDV est déjà annulé/honoré/ignoré ou passé
+     * @throws StatusChangeNotAllowedException si le RDV est déjà annulé/honoré/ignoré ou passé.
      */
     public function annuler(?DateTimeInterface $now = null): void {
         $now = $now ?? new DateTimeImmutable();
