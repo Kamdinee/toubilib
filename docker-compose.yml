@@ -30,7 +30,7 @@ services:
     networks:
       - toubilib.net
     volumes:
-      - ./sql:/var/sql
+      - ./app/sql:/var/sql
 
 
   adminer:
