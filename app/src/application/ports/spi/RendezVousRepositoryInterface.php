@@ -14,8 +14,13 @@ interface RendezVousRepositoryInterface {
     public function findById(string $id): RendezVous;
 
     /**
-     * Sauvegarde ou met a jour un rendez-vous
+     * Sauvegarde la modification d'un rendez-vous existant
      */
     public function save(RendezVous $rdv): void;
+
+    /**
+     * Sauvegarde un nouveau rendez-vous
+     */
+    public function ajouter(RendezVous $rdv): void;
 }
 

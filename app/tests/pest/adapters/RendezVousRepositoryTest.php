@@ -26,7 +26,7 @@ it('devrait trouver un rendez-vous existant en base de donnees', function () {
     $id = Uuid::uuid4()->toString();
     $debut = new DateTimeImmutable('+5 days');
     $rdv = new RendezVous($id, 'prat-test', 'pat-test', $debut, 30, null, null, 'CI');
-    $repository->save($rdv);
+    $repository->ajouter($rdv);
 
     // recherche par id
     $trouve = $repository->findById($id);
@@ -45,7 +45,7 @@ it('devrait mettre a jour le statut d\'un rendez-vous avec save', function () {
     $id = Uuid::uuid4()->toString();
     $debut = new DateTimeImmutable('+5 days');
     $rdv = new RendezVous($id, 'prat-test', 'pat-test', $debut);
-    $repository->save($rdv);
+    $repository->ajouter($rdv);
 
     // annule le RDV et sauvegarde
     $rdv->annuler();
