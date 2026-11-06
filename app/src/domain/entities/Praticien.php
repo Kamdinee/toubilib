@@ -3,7 +3,24 @@ declare(strict_types=1);
 
 namespace toubilib\domain\entities;
 
+use DateTimeImmutable;
+use toubilib\domain\exceptions\RendezVousInvalideException;
+
 class Praticien {
+
+    /**
+     * Motifs de visite acceptes et duree du RDV associee (en minutes)
+     * Simplification du projet : tous les praticiens utilisent les memes motifs
+     */
+    public const MOTIFS = [
+        'CI' => 30, // consultation initiale
+        'CO' => 20, // consultation
+        'CS' => 15, // consultation de suivi
+    ];
+
+    /** Plage horaire des RDV acceptes */
+    public const HEURE_DEBUT = '09:00';
+    public const HEURE_FIN = '19:00';
 
     public function __construct(
         private string $id,
@@ -17,6 +34,42 @@ class Praticien {
         private ?string $rppsId = null,
         private bool $accepteNouveauPatient = true
     ) {}
+
+    /**
+     * Verifie que le motif de RDV demande est accepte par le praticien
+     */
+    public function accepteMotif(string $motif): bool {
+        return array_key_exists($motif, self::MOTIFS);
+    }
+
+    /**
+     * Calcule la duree d'un RDV (en minutes) en fonction du motif
+     *
+     * @throws RendezVousInvalideException si le motif n'est pas accepte
+     */
+    public function dureeRdv(string $motif): int {
+        if (!$this->accepteMotif($motif)) {
+            throw new RendezVousInvalideException("Le motif de visite '$motif' n'est pas accepte par ce praticien");
+        }
+        return self::MOTIFS[$motif];
+    }
+
+    /**
+     * Verifie que la date et l'heure demandees sont possibles pour le praticien :
+     * jour ouvrable (lundi au vendredi) et RDV entierement compris dans la plage horaire
+     */
+    public function accepteDate(DateTimeImmutable $debut, int $duree): bool {
+        // format 'N' : 1 (lundi) a 7 (dimanche)
+        if ((int) $debut->format('N') > 5) {
+            return false;
+        }
+
+        $fin = $debut->modify("+$duree minutes");
+        $ouverture = $debut->modify(self::HEURE_DEBUT);
+        $fermeture = $debut->modify(self::HEURE_FIN);
+
+        return $debut >= $ouverture && $fin <= $fermeture;
+    }
 
     public function getId(): string {
         return $this->id;
