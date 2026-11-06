@@ -3,7 +3,7 @@ declare(strict_types=1);
 
 namespace toubilib\application\dto;
 
-use DateTimeImmutable;
+use Respect\Validation\ValidatorBuilder as v;
 use toubilib\application\exceptions\DonneesInvalidesException;
 
 /**
@@ -13,6 +13,8 @@ final class CreateRdvDTO {
 
     public const FORMAT_DATE = 'Y-m-d H:i';
 
+    private const CHAMPS = ['praticien_id', 'patient_id', 'date_heure_debut', 'motif_visite'];
+
     public function __construct(
         public readonly string $praticienId,
         public readonly string $patientId,
@@ -21,54 +23,40 @@ final class CreateRdvDTO {
     ) {}
 
     /**
-     * Cree le DTO a partir des donnees recues dans la requete HTTP,
-     * en controlant la presence, le type et le format de chaque donnee
-     * et en filtrant les chaines recues.
+     * Cree le DTO a partir des donnees recues dans la requete HTTP.
+     * Les chaines sont d'abord filtrees (espaces et balises supprimes), puis la
+     * presence, le type et le format de chaque champ sont controles avec Respect\Validation.
      *
      * @throws DonneesInvalidesException si une donnee est absente ou mal formee
      */
     public static function fromArray(mixed $data): self {
-        if (!is_array($data)) {
+        if (!v::arrayType()->isValid($data)) {
             throw new DonneesInvalidesException(['corps' => 'le corps de la requete doit etre un objet JSON']);
         }
 
+        // protection des donnees : suppression des espaces et des balises
+        foreach (self::CHAMPS as $champ) {
+            if (isset($data[$champ]) && is_string($data[$champ])) {
+                $data[$champ] = trim(strip_tags($data[$champ]));
+            }
+        }
+
+        // une regle de validation et un message d'erreur par champ
+        $identifiant = v::stringType()->notBlank()->regex('/^[a-zA-Z0-9-]{1,64}$/');
+        $regles = [
+            'praticien_id' => [$identifiant, 'doit etre un identifiant valide'],
+            'patient_id' => [$identifiant, 'doit etre un identifiant valide'],
+            'date_heure_debut' => [v::stringType()->dateTime(self::FORMAT_DATE), 'doit etre une date au format AAAA-MM-JJ HH:MM'],
+            'motif_visite' => [v::stringType()->regex('/^[A-Z]{2}$/'), 'doit etre un code de 2 lettres majuscules (ex : CI)'],
+        ];
+
         $erreurs = [];
-        $champs = ['praticien_id', 'patient_id', 'date_heure_debut', 'motif_visite'];
-        $valeurs = [];
-
-        // presence et type
-        foreach ($champs as $champ) {
-            if (!isset($data[$champ])) {
+        foreach ($regles as $champ => [$regle, $message]) {
+            if (!v::keyExists($champ)->isValid($data)) {
                 $erreurs[$champ] = "le champ $champ est obligatoire";
-            } elseif (!is_string($data[$champ])) {
-                $erreurs[$champ] = "le champ $champ doit etre une chaine de caracteres";
-            } else {
-                // protection : suppression des espaces et des balises
-                $valeurs[$champ] = trim(strip_tags($data[$champ]));
-                if ($valeurs[$champ] === '') {
-                    $erreurs[$champ] = "le champ $champ ne doit pas etre vide";
-                }
+            } elseif (!$regle->isValid($data[$champ])) {
+                $erreurs[$champ] = "le champ $champ $message";
             }
-        }
-
-        // format des identifiants
-        foreach (['praticien_id', 'patient_id'] as $champ) {
-            if (!isset($erreurs[$champ]) && !preg_match('/^[a-zA-Z0-9-]{1,64}$/', $valeurs[$champ])) {
-                $erreurs[$champ] = "le champ $champ n'est pas un identifiant valide";
-            }
-        }
-
-        // format de la date
-        if (!isset($erreurs['date_heure_debut'])) {
-            $date = DateTimeImmutable::createFromFormat(self::FORMAT_DATE, $valeurs['date_heure_debut']);
-            if ($date === false || $date->format(self::FORMAT_DATE) !== $valeurs['date_heure_debut']) {
-                $erreurs['date_heure_debut'] = 'le champ date_heure_debut doit etre au format AAAA-MM-JJ HH:MM';
-            }
-        }
-
-        // format du motif
-        if (!isset($erreurs['motif_visite']) && !preg_match('/^[A-Z]{2}$/', $valeurs['motif_visite'])) {
-            $erreurs['motif_visite'] = 'le champ motif_visite doit etre un code de 2 lettres majuscules (ex : CI)';
         }
 
         if (!empty($erreurs)) {
@@ -76,10 +64,10 @@ final class CreateRdvDTO {
         }
 
         return new self(
-            praticienId: $valeurs['praticien_id'],
-            patientId: $valeurs['patient_id'],
-            dateHeureDebut: $valeurs['date_heure_debut'],
-            motifVisite: $valeurs['motif_visite']
+            praticienId: $data['praticien_id'],
+            patientId: $data['patient_id'],
+            dateHeureDebut: $data['date_heure_debut'],
+            motifVisite: $data['motif_visite']
         );
     }
 
