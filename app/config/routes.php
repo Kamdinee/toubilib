@@ -1,6 +1,8 @@
 <?php
 declare(strict_types=1);
 
+use Psr\Http\Message\ResponseInterface;
+use Psr\Http\Message\ServerRequestInterface;
 use Slim\App;
 use Slim\Routing\RouteCollectorProxy;
 use toubilib\adapters\controllers\actions\AfficherPraticienAction;
@@ -40,6 +42,11 @@ return function (App $app): App {
         // fonctionnalite 9 : marquer un rendez-vous comme honore ou ignore
         $group->patch('/{id}/honorer', HonorerRendezVousAction::class)->setName('rdv-honorer');
         $group->patch('/{id}/ignorer', IgnorerRendezVousAction::class)->setName('rdv-ignorer');
+    });
+
+    // requetes de pre-verification CORS : reponse vide, les headers sont ajoutes par CorsMiddleware
+    $app->options('/{routes:.+}', function (ServerRequestInterface $rq, ResponseInterface $rs) {
+        return $rs;
     });
 
     return $app;

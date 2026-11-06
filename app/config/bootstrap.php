@@ -4,6 +4,7 @@ declare(strict_types=1);
 use DI\ContainerBuilder;
 use Dotenv\Dotenv;
 use Slim\Factory\AppFactory;
+use toubilib\adapters\controllers\middlewares\CorsMiddleware;
 
 // chargement des variables d'environnement
 $dotenv = Dotenv::createImmutable(__DIR__);
@@ -28,6 +29,10 @@ $app->addRoutingMiddleware();
 // (le detail "exception" n'est affiche que si displayErrorDetails vaut true)
 $errorMiddleware = $app->addErrorMiddleware($container->get('displayErrorDetails'), false, false);
 $errorMiddleware->getDefaultErrorHandler()->forceContentType('application/json');
+
+// headers CORS : ajoute en dernier pour etre execute en premier,
+// les reponses d'erreur recoivent donc aussi les headers CORS
+$app->add(CorsMiddleware::class);
 
 // declaration des routes de l'API
 $app = (require __DIR__ . '/routes.php')($app);

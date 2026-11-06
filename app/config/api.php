@@ -11,6 +11,7 @@ use toubilib\adapters\controllers\actions\HonorerRendezVousAction;
 use toubilib\adapters\controllers\actions\IgnorerRendezVousAction;
 use toubilib\adapters\controllers\actions\ListerCreneauxAction;
 use toubilib\adapters\controllers\actions\ListerPraticiensAction;
+use toubilib\adapters\controllers\middlewares\CorsMiddleware;
 use toubilib\adapters\controllers\middlewares\ValidationCreateRdvMiddleware;
 use toubilib\application\ports\api\ServicePraticienInterface;
 use toubilib\application\ports\api\ServiceRendezVousInterface;
@@ -57,6 +58,10 @@ return [
     },
 
     // middlewares
+    CorsMiddleware::class => function (ContainerInterface $c) {
+        return new CorsMiddleware($c->get('cors.origine'));
+    },
+
     ValidationCreateRdvMiddleware::class => function (ContainerInterface $c) {
         return new ValidationCreateRdvMiddleware();
     },
