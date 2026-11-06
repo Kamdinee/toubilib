@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 use Slim\App;
 use Slim\Routing\RouteCollectorProxy;
+use toubilib\adapters\controllers\actions\AfficherPraticienAction;
 use toubilib\adapters\controllers\actions\AnnulerRendezVousAction;
 use toubilib\adapters\controllers\actions\ListerPraticiensAction;
 
@@ -12,6 +13,8 @@ return function (App $app): App {
     $app->group('/praticiens', function (RouteCollectorProxy $group) {
         // fonctionnalite 1 : lister les praticiens
         $group->get('', ListerPraticiensAction::class)->setName('praticiens-lister');
+        // fonctionnalite 2 : detail d'un praticien
+        $group->get('/{id}', AfficherPraticienAction::class)->setName('praticien-afficher');
     });
 
     $app->group('/rdvs', function (RouteCollectorProxy $group) {
