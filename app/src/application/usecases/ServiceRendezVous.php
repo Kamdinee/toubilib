@@ -11,6 +11,8 @@ use toubilib\application\ports\spi\PraticienRepositoryInterface;
 use toubilib\application\ports\spi\RendezVousRepositoryInterface;
 use toubilib\application\validators\RdvValidator;
 use toubilib\domain\entities\RendezVous;
+use toubilib\domain\exceptions\PatientNotFoundException;
+use toubilib\domain\exceptions\PraticienNotFoundException;
 
 class ServiceRendezVous implements ServiceRendezVousInterface {
 
@@ -27,7 +29,7 @@ class ServiceRendezVous implements ServiceRendezVousInterface {
      * @throws RendezVousNotFoundException si le RDV n'existe pas
      */
     public function consulter(string $id): RendezVousDTO {
-        return RendezVousDTO::fromEntity($this->rendezVousRepository->findById($id));
+        return $this->versDTO($this->rendezVousRepository->findById($id));
     }
 
     /**
@@ -51,7 +53,7 @@ class ServiceRendezVous implements ServiceRendezVousInterface {
         // 4 persistance du nouveau rendez-vous
         $this->rendezVousRepository->ajouter($rdv);
 
-        return RendezVousDTO::fromEntity($rdv);
+        return RendezVousDTO::fromEntity($rdv, $praticien, $patient);
     }
 
     /**
@@ -71,7 +73,7 @@ class ServiceRendezVous implements ServiceRendezVousInterface {
         $this->rendezVousRepository->save($rdv);
 
         // 4 retourner les informations sous forme de DTO
-        return RendezVousDTO::fromEntity($rdv);
+        return $this->versDTO($rdv);
     }
 
     /**
@@ -82,7 +84,7 @@ class ServiceRendezVous implements ServiceRendezVousInterface {
         $rdv->honorer();
         $this->rendezVousRepository->save($rdv);
 
-        return RendezVousDTO::fromEntity($rdv);
+        return $this->versDTO($rdv);
     }
 
     /**
@@ -93,6 +95,24 @@ class ServiceRendezVous implements ServiceRendezVousInterface {
         $rdv->ignorer();
         $this->rendezVousRepository->save($rdv);
 
-        return RendezVousDTO::fromEntity($rdv);
+        return $this->versDTO($rdv);
+    }
+
+    /**
+     * Construit le DTO d'un rendez-vous avec les noms du praticien et du patient
+     */
+    private function versDTO(RendezVous $rdv): RendezVousDTO {
+        try {
+            $praticien = $this->praticienRepository->findById($rdv->getPraticienId());
+        } catch (PraticienNotFoundException $e) {
+            $praticien = null;
+        }
+        try {
+            $patient = $this->patientRepository->findById($rdv->getPatientId());
+        } catch (PatientNotFoundException $e) {
+            $patient = null;
+        }
+
+        return RendezVousDTO::fromEntity($rdv, $praticien, $patient);
     }
 }
