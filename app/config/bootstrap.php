@@ -4,7 +4,6 @@ declare(strict_types=1);
 use DI\ContainerBuilder;
 use Dotenv\Dotenv;
 use Slim\Factory\AppFactory;
-use toubilib\adapters\controllers\actions\AnnulerRendezVousAction;
 
 // chargement des variables d'environnement
 $dotenv = Dotenv::createImmutable(__DIR__);
@@ -35,10 +34,6 @@ $errorHandler->registerErrorRenderer('application/json', function ($exception, $
 });
 
 // declaration des routes de l'API
-$app->group('/rdvs', function (\Slim\Routing\RouteCollectorProxy $group) {
-    // annulation d'un rendez-vous : modification partielle de la ressource
-    // PATCH /rdvs/{id} avec le corps {"status": "annule"}
-    $group->patch('/{id}', AnnulerRendezVousAction::class)->setName('rdv-annuler');
-});
+$app = (require __DIR__ . '/routes.php')($app);
 
 return $app;
