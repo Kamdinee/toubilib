@@ -5,6 +5,8 @@ namespace toubilib\domain\entities;
 
 use DateTimeInterface;
 use DateTimeImmutable;
+use Ramsey\Uuid\Uuid;
+use toubilib\domain\exceptions\RendezVousInvalideException;
 use toubilib\domain\exceptions\StatusChangeNotAllowedException;
 
 class RendezVous {
@@ -28,6 +30,48 @@ class RendezVous {
         if ($this->dateCreation === null) {
             $this->dateCreation = new DateTimeImmutable();
         }
+    }
+
+    /**
+     * Validation-creation d'un rendez-vous : verifie le motif et la date demandes
+     * pour le praticien, puis cree le rendez-vous
+     *
+     * @throws RendezVousInvalideException si le motif ou la date ne sont pas valides
+     */
+    public static function creer(
+        Praticien $praticien,
+        Patient $patient,
+        DateTimeImmutable $dateHeureDebut,
+        string $motif,
+        ?DateTimeImmutable $now = null
+    ): self {
+        $now = $now ?? new DateTimeImmutable();
+
+        // le motif doit etre accepte par le praticien, il determine la duree
+        $duree = $praticien->dureeRdv($motif);
+
+        // la date doit etre dans le futur
+        if ($dateHeureDebut <= $now) {
+            throw new RendezVousInvalideException("La date du rendez-vous doit etre dans le futur");
+        }
+
+        // la date doit etre possible pour le praticien
+        if (!$praticien->accepteDate($dateHeureDebut, $duree)) {
+            throw new RendezVousInvalideException(
+                "Le praticien ne prend pas de rendez-vous a cette date : du lundi au vendredi, entre "
+                . Praticien::HEURE_DEBUT . " et " . Praticien::HEURE_FIN
+            );
+        }
+
+        return new self(
+            id: Uuid::uuid4()->toString(),
+            praticienId: $praticien->getId(),
+            patientId: $patient->getId(),
+            dateHeureDebut: $dateHeureDebut,
+            duree: $duree,
+            dateCreation: $now,
+            motifVisite: $motif
+        );
     }
 
     /**
