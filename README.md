@@ -136,7 +136,7 @@ Réponse :
   "date_creation": "2026-12-01 00:00:00",
   "duree": 30,
   "motif_visite": "CI",
-  "status": 1,
+  "status": -1,
   "status_libelle": "ANNULE"
 }
 ```
@@ -150,7 +150,7 @@ VALUES ('rdv-demo', '4305f5e9-be5a-4ccf-8792-7e07d7017363', 'da362a38-c1bf-39ed-
         NOW() + INTERVAL '7 days', 0, 30, NOW() + INTERVAL '7 days 30 minutes', NOW(), 'CI');
 ```
 
-Statuts d'un RDV : `0` prévu, `1` annulé, `2` honoré, `3` ignoré.
+Statuts d'un RDV : `0` prévu, `-1` annulé, `2` honoré, `3` ignoré (`-1` est la valeur utilisée par les données de départ).
 
 ## Modèle du domaine
 
