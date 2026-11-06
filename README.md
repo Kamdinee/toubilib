@@ -130,7 +130,8 @@ Règles métier :
 Traitement d'une demande :
 
 1. `ValidationCreateRdvMiddleware` construit un `CreateRdvDTO` à partir du corps de la requête
-   (`CreateRdvDTO::fromArray`) : présence, type et format des champs, suppression des espaces et balises ;
+   (`CreateRdvDTO::fromArray`) : suppression des espaces et balises, puis contrôle de la présence,
+   du type et du format des champs avec Respect\Validation ;
 2. `CreerRendezVousAction` appelle `ServiceRendezVous::creerRendezVous()` ;
 3. le service valide les données avec `RdvValidator` (praticien et patient existants, motif, date),
    charge le patient et le praticien avec ses RDV du jour, crée l'entité avec `RendezVous::creer()`
