@@ -1,7 +1,6 @@
 <?php
 declare(strict_types=1);
 
-use DateTimeImmutable;
 use toubilib\application\dto\RendezVousDTO;
 use toubilib\domain\entities\RendezVous;
 use toubilib\domain\entities\RendezVousStatus;

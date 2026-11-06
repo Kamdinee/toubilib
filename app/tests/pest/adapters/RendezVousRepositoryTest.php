@@ -1,7 +1,6 @@
 <?php
 declare(strict_types=1);
 
-use DateTimeImmutable;
 use Ramsey\Uuid\Uuid;
 use toubilib\adapters\persistence\RendezVousRepository;
 use toubilib\domain\entities\RendezVous;
