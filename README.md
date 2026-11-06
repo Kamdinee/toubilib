@@ -58,6 +58,49 @@ Les tests de `RendezVousRepository` nécessitent la base PostgreSQL démarrée.
 
 ## API
 
+| Méthode | URL | Fonctionnalité |
+|---|---|---|
+| GET | `/praticiens` | 1. Lister les praticiens |
+| GET | `/praticiens/{id}` | 2. Détail d'un praticien |
+| GET | `/rdvs/{id}` | 3. Détail d'un RDV |
+| PATCH | `/rdvs/{id}` | 6. Annuler un RDV |
+
+### Lister les praticiens (fonctionnalité 1)
+
+`GET /praticiens` → `200`
+
+```json
+{
+  "praticiens": [
+    { "id": "…", "nom": "Aubert", "prenom": "Louis", "ville": "Carre-sur-Turpin",
+      "email": "Louis.Aubert@free.fr", "specialite": "pédiatrie" }
+  ]
+}
+```
+
+### Détail d'un praticien (fonctionnalité 2)
+
+`GET /praticiens/{id}` → `200`, ou `404` si le praticien n'existe pas
+
+```json
+{
+  "id": "4305f5e9-be5a-4ccf-8792-7e07d7017363",
+  "titre": "Cab.",
+  "nom": "Radio Plus",
+  "prenom": "Cabinet",
+  "specialite": "ORL",
+  "contacts": { "email": "radio.plus@sante.fr", "telephone": "03 43 56 65 54" },
+  "adresse": { "ville": "Nancy" },
+  "rpps_id": null,
+  "accepte_nouveau_patient": true
+}
+```
+
+### Détail d'un RDV (fonctionnalité 3)
+
+`GET /rdvs/{id}` → `200` avec le RDV (même format que la réponse d'annulation ci-dessous),
+ou `404` si le RDV n'existe pas.
+
 ### Annuler un rendez-vous (fonctionnalité 6)
 
 `PATCH /rdvs/{id}`
@@ -161,28 +204,34 @@ Racine PSR-4 : `toubilib\` → `app/src/`
 
 | Namespace | Rôle |
 |---|---|
-| `toubilib\domain\entities` | Entités métier (`RendezVous`, `RendezVousStatus`) et leurs règles |
+| `toubilib\domain\entities` | Entités métier (`RendezVous`, `RendezVousStatus`, `Praticien`, `Specialite`) et leurs règles |
 | `toubilib\domain\exceptions` | Exceptions métier |
-| `toubilib\application\ports\api` | Interfaces des services exposés (`ServiceRendezVousInterface`) |
-| `toubilib\application\ports\spi` | Interfaces des dépendances externes (`RendezVousRepositoryInterface`) |
-| `toubilib\application\usecases` | Services applicatifs (`ServiceRendezVous`) |
-| `toubilib\application\dto` | DTO renvoyés par les services (`RendezVousDTO`) |
-| `toubilib\adapters\persistence` | Adaptateurs de persistance PDO (`RendezVousRepository`) |
+| `toubilib\application\ports\api` | Interfaces des services exposés (`ServiceRendezVousInterface`, `ServicePraticienInterface`) |
+| `toubilib\application\ports\spi` | Interfaces des dépendances externes (`RendezVousRepositoryInterface`, `PraticienRepositoryInterface`) |
+| `toubilib\application\usecases` | Services applicatifs (`ServiceRendezVous`, `ServicePraticien`) |
+| `toubilib\application\dto` | DTO renvoyés par les services |
+| `toubilib\adapters\persistence` | Adaptateurs de persistance PDO |
 | `toubilib\adapters\controllers\actions` | Actions Slim |
 | `toubilib\adapters\controllers\middlewares` | Middlewares et rendu JSON |
-| `toubilib\adapters\config` | Configuration du conteneur d'injection de dépendances |
 | `tests\` → `app/tests/` | Tests Pest |
 
 Le domaine et l'application ne dépendent que des interfaces : les adaptateurs
-sont branchés par le conteneur PHP-DI (`ContainerConfig`).
+sont branchés par le conteneur PHP-DI, dont les définitions sont réparties dans `app/config/` :
+
+| Fichier | Contenu |
+|---|---|
+| `settings.php` | Variables de configuration (base de données, affichage des erreurs) |
+| `services.php` | Connexion PDO, repositorys et services métier |
+| `api.php` | Actions Slim |
+| `routes.php` | Routes de l'API |
 
 ## Tableau de bord
 
 | # | Fonctionnalité | État | Réalisé par |
 |---|---|---|---|
-| 1 | Lister les praticiens | À faire | |
-| 2 | Détail d'un praticien | À faire | |
-| 3 | Détail d'un RDV | À faire | |
+| 1 | Lister les praticiens | Fait (TD2) | |
+| 2 | Détail d'un praticien | Fait (TD2) | |
+| 3 | Détail d'un RDV | Fait (TD2) | |
 | 4 | Agenda d'un praticien | À faire | |
 | 5 | Créer un RDV | À faire | |
 | 6 | Annuler un RDV | Fait (TD1) | |

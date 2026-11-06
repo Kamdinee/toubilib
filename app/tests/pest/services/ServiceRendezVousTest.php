@@ -10,6 +10,30 @@ use toubilib\domain\entities\RendezVousStatus;
 use toubilib\domain\exceptions\RendezVousNotFoundException;
 use toubilib\domain\exceptions\StatusChangeNotAllowedException;
 
+it('devrait retourner le detail d\'un rendez-vous', function () {
+    $repository = new InMemoryRendezVousRepository();
+    $id = Uuid::uuid4()->toString();
+    $repository->save(new RendezVous($id, 'prat-1', 'pat-1', new DateTimeImmutable('2026-12-05 11:30:00'), 30, motifVisite: 'CI'));
+    $service = new ServiceRendezVous($repository);
+
+    $dto = $service->consulter($id);
+
+    expect($dto)->toBeInstanceOf(RendezVousDTO::class)
+        ->and($dto->id)->toBe($id)
+        ->and($dto->praticienId)->toBe('prat-1')
+        ->and($dto->patientId)->toBe('pat-1')
+        ->and($dto->dateHeureDebut)->toBe('2026-12-05 11:30:00')
+        ->and($dto->motifVisite)->toBe('CI')
+        ->and($dto->statusLibelle)->toBe('PREVU');
+});
+
+it('devrait lever une RendezVousNotFoundException en consultant un RDV inexistant', function () {
+    $service = new ServiceRendezVous(new InMemoryRendezVousRepository());
+
+    expect(fn () => $service->consulter('id-inexistant'))
+        ->toThrow(RendezVousNotFoundException::class);
+});
+
 it('devrait annuler un rendez-vous avec succes via le service', function () {
     // preparer le repository avec un RDV futur
     $repository = new InMemoryRendezVousRepository();

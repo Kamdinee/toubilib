@@ -7,6 +7,13 @@ use toubilib\application\dto\RendezVousDTO;
 
 interface ServiceRendezVousInterface {
     /**
+     * Retourne le detail d'un rendez-vous
+     *
+     * @throws RendezVousNotFoundException si le RDV n'existe pas
+     */
+    public function consulter(string $id): RendezVousDTO;
+
+    /**
      * Annule un rendez-vous a partir de son identifiant
      * 
      * @throws RendezVousNotFoundException si le RDV n'existe pas
