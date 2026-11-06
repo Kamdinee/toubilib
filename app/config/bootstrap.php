@@ -30,9 +30,9 @@ $errorHandler->registerErrorRenderer('application/json', function ($exception, $
 
 // declaration des routes de l'API
 $app->group('/rdvs', function (\Slim\Routing\RouteCollectorProxy $group) {
-    // route d'annulation d'un rendez-vous avec PATCH et POST
-    $group->patch('/{id}/annuler', AnnulerRendezVousAction::class)->setName('rdv-annuler-patch');
-    $group->post('/{id}/annuler', AnnulerRendezVousAction::class)->setName('rdv-annuler-post');
+    // annulation d'un rendez-vous : modification partielle de la ressource
+    // PATCH /rdvs/{id} avec le corps {"status": "annule"}
+    $group->patch('/{id}', AnnulerRendezVousAction::class)->setName('rdv-annuler');
 });
 
 return $app;
