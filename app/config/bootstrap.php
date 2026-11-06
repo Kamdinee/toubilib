@@ -1,9 +1,9 @@
 <?php
 declare(strict_types=1);
 
+use DI\ContainerBuilder;
 use Dotenv\Dotenv;
 use Slim\Factory\AppFactory;
-use toubilib\adapters\config\ContainerConfig;
 use toubilib\adapters\controllers\actions\AnnulerRendezVousAction;
 
 // chargement des variables d'environnement
@@ -11,7 +11,13 @@ $dotenv = Dotenv::createImmutable(__DIR__);
 $dotenv->load();
 
 // creation du conteneur d'injection de dependances
-$container = ContainerConfig::build();
+$builder = new ContainerBuilder();
+$builder->addDefinitions(__DIR__ . '/settings.php');
+$builder->addDefinitions(__DIR__ . '/services.php');
+$builder->addDefinitions(__DIR__ . '/api.php');
+$container = $builder->build();
+
+// creation de l'application Slim utilisant ce conteneur
 $app = AppFactory::createFromContainer($container);
 
 // ajout des middlewares
@@ -19,7 +25,7 @@ $app->addBodyParsingMiddleware();
 $app->addRoutingMiddleware();
 
 // gestionnaire d'erreurs au format JSON
-$errorMiddleware = $app->addErrorMiddleware(true, false, false);
+$errorMiddleware = $app->addErrorMiddleware($container->get('displayErrorDetails'), false, false);
 $errorHandler = $errorMiddleware->getDefaultErrorHandler();
 $errorHandler->forceContentType('application/json');
 $errorHandler->registerErrorRenderer('application/json', function ($exception, $displayErrorDetails) {
@@ -36,4 +42,3 @@ $app->group('/rdvs', function (\Slim\Routing\RouteCollectorProxy $group) {
 });
 
 return $app;
-
