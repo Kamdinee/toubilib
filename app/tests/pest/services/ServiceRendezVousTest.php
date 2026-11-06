@@ -8,6 +8,7 @@ use tests\pest\fakes\InMemoryRendezVousRepository;
 use toubilib\application\dto\RendezVousDTO;
 use toubilib\application\usecases\ServiceRendezVous;
 use toubilib\application\validators\RdvValidator;
+use toubilib\domain\entities\Patient;
 use toubilib\domain\entities\Praticien;
 use toubilib\domain\entities\RendezVous;
 use toubilib\domain\entities\RendezVousStatus;
@@ -127,4 +128,27 @@ it('devrait lever PraticienNotFoundException pour les creneaux d\'un praticien i
 
     expect(fn () => $service->listerCreneauxOccupes('inconnu', new DateTimeImmutable(), new DateTimeImmutable()))
         ->toThrow(PraticienNotFoundException::class);
+});
+
+it('devrait retourner l\'agenda d\'un praticien avec le nom des patients', function () {
+    $repository = new InMemoryRendezVousRepository();
+    $repository->save(new RendezVous('r1', 'prat-1', 'pat-1', new DateTimeImmutable('2030-01-07 14:00'), 20, motifVisite: 'CO'));
+    $repository->save(new RendezVous('r2', 'prat-1', 'pat-2', new DateTimeImmutable('2030-01-07 09:00'), 30, motifVisite: 'CI'));
+    $repository->save(new RendezVous('r3', 'prat-1', 'pat-1', new DateTimeImmutable('2030-01-08 09:00'), 30, motifVisite: 'CI'));
+
+    $praticiens = new InMemoryPraticienRepository();
+    $praticiens->add(new Praticien('prat-1', 'Paul', 'Marine', 'Paris', 'm@mail.fr', '0102030405', new Specialite(1, 'médecine générale')));
+    $patients = new InMemoryPatientRepository();
+    $patients->add(new Patient('pat-1', 'Teixeira', 'Denis', '0155016382'));
+    $service = new ServiceRendezVous($repository, $praticiens, $patients, new RdvValidator($praticiens, $patients));
+
+    $agenda = $service->agendaPraticien('prat-1', new DateTimeImmutable('2030-01-07 00:00:00'), new DateTimeImmutable('2030-01-07 23:59:59'));
+
+    expect($agenda)->toHaveCount(2)
+        ->and($agenda[0]->id)->toBe('r2')
+        ->and($agenda[0]->patientNom)->toBeNull()
+        ->and($agenda[1]->id)->toBe('r1')
+        ->and($agenda[1]->patientNom)->toBe('Denis Teixeira')
+        ->and($agenda[1]->motifLibelle)->toBe('Consultation')
+        ->and($agenda[1]->praticienNom)->toBe('Marine Paul');
 });

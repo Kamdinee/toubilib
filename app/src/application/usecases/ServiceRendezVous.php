@@ -119,6 +119,32 @@ class ServiceRendezVous implements ServiceRendezVousInterface {
     }
 
     /**
+     * Agenda d'un praticien : ses RDV entre deux dates, avec le nom des patients
+     *
+     * @throws PraticienNotFoundException si le praticien n'existe pas
+     */
+    public function agendaPraticien(string $praticienId, DateTimeImmutable $debut, DateTimeImmutable $fin): array {
+        $praticien = $this->praticienRepository->findById($praticienId);
+
+        $patients = [];
+        $agenda = [];
+        foreach ($this->rendezVousRepository->findByPraticienEntre($praticienId, $debut, $fin) as $rdv) {
+            // chaque patient n'est charge qu'une fois
+            $patientId = $rdv->getPatientId();
+            if (!array_key_exists($patientId, $patients)) {
+                try {
+                    $patients[$patientId] = $this->patientRepository->findById($patientId);
+                } catch (PatientNotFoundException $e) {
+                    $patients[$patientId] = null;
+                }
+            }
+            $agenda[] = RendezVousDTO::fromEntity($rdv, $praticien, $patients[$patientId]);
+        }
+
+        return $agenda;
+    }
+
+    /**
      * Construit le DTO d'un rendez-vous avec les noms du praticien et du patient
      */
     private function versDTO(RendezVous $rdv): RendezVousDTO {

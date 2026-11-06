@@ -55,4 +55,12 @@ interface ServiceRendezVousInterface {
      * @throws PraticienNotFoundException si le praticien n'existe pas
      */
     public function listerCreneauxOccupes(string $praticienId, DateTimeImmutable $debut, DateTimeImmutable $fin): array;
+
+    /**
+     * Agenda d'un praticien entre deux dates : ses rendez-vous avec patients et motifs
+     *
+     * @return RendezVousDTO[]
+     * @throws PraticienNotFoundException si le praticien n'existe pas
+     */
+    public function agendaPraticien(string $praticienId, DateTimeImmutable $debut, DateTimeImmutable $fin): array;
 }

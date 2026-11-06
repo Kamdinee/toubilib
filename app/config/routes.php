@@ -4,6 +4,7 @@ declare(strict_types=1);
 use Slim\App;
 use Slim\Routing\RouteCollectorProxy;
 use toubilib\adapters\controllers\actions\AfficherPraticienAction;
+use toubilib\adapters\controllers\actions\AgendaPraticienAction;
 use toubilib\adapters\controllers\actions\AfficherRendezVousAction;
 use toubilib\adapters\controllers\actions\AnnulerRendezVousAction;
 use toubilib\adapters\controllers\actions\CreerRendezVousAction;
@@ -21,6 +22,8 @@ return function (App $app): App {
         $group->get('', ListerPraticiensAction::class)->setName('praticiens-lister');
         // fonctionnalite 2 : detail d'un praticien
         $group->get('/{id}', AfficherPraticienAction::class)->setName('praticien-afficher');
+        // fonctionnalite 4 : agenda d'un praticien (?debut=AAAA-MM-JJ&fin=AAAA-MM-JJ)
+        $group->get('/{id}/rdvs', AgendaPraticienAction::class)->setName('praticien-agenda');
         // fonctionnalite 7 : creneaux occupes d'un praticien (?debut=AAAA-MM-JJ&fin=AAAA-MM-JJ)
         $group->get('/{id}/creneaux', ListerCreneauxAction::class)->setName('praticien-creneaux');
     });
