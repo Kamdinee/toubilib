@@ -8,6 +8,7 @@ use Psr\Http\Message\ServerRequestInterface;
 use Slim\Exception\HttpBadRequestException;
 use Slim\Exception\HttpException;
 use Slim\Routing\RouteContext;
+use toubilib\adapters\controllers\renderers\RendezVousRenderer;
 use toubilib\adapters\controllers\middlewares\ValidationCreateRdvMiddleware;
 use toubilib\application\dto\CreateRdvDTO;
 use toubilib\application\ports\api\ServiceRendezVousInterface;
@@ -37,9 +38,11 @@ class CreerRendezVousAction extends AbstractAction {
             throw new HttpException($rq, $e->getMessage(), 409);
         }
 
-        // 201 Created avec l'URL du nouveau RDV dans le header Location
-        $url = RouteContext::fromRequest($rq)->getRouteParser()->urlFor('rdv-afficher', ['id' => $rdv->id]);
+        // 201 Created avec l'URL du nouveau RDV dans le header Location,
+        // le rendez-vous et ses liens HATEOAS
+        $routes = RouteContext::fromRequest($rq)->getRouteParser();
+        $url = $routes->urlFor('rdv-afficher', ['id' => $rdv->id]);
 
-        return $this->json($rs->withHeader('Location', $url), $rdv->toArray(), 201);
+        return $this->json($rs->withHeader('Location', $url), RendezVousRenderer::ressource($rdv, $routes), 201);
     }
 }
