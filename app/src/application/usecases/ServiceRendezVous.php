@@ -73,5 +73,26 @@ class ServiceRendezVous implements ServiceRendezVousInterface {
         // 4 retourner les informations sous forme de DTO
         return RendezVousDTO::fromEntity($rdv);
     }
-}
 
+    /**
+     * Marque un rendez-vous comme honore et sauvegarde sa modification d'etat
+     */
+    public function honorer(string $id): RendezVousDTO {
+        $rdv = $this->rendezVousRepository->findById($id);
+        $rdv->honorer();
+        $this->rendezVousRepository->save($rdv);
+
+        return RendezVousDTO::fromEntity($rdv);
+    }
+
+    /**
+     * Marque un rendez-vous comme ignore et sauvegarde sa modification d'etat
+     */
+    public function ignorer(string $id): RendezVousDTO {
+        $rdv = $this->rendezVousRepository->findById($id);
+        $rdv->ignorer();
+        $this->rendezVousRepository->save($rdv);
+
+        return RendezVousDTO::fromEntity($rdv);
+    }
+}

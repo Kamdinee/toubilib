@@ -122,6 +122,42 @@ class RendezVous {
         $this->status = RendezVousStatus::ANNULE;
     }
 
+    /**
+     * Marque le rendez-vous comme honore : le patient s'est presente
+     *
+     * @throws StatusChangeNotAllowedException si le RDV n'est pas PREVU ou n'a pas encore commence
+     */
+    public function honorer(?DateTimeInterface $now = null): void {
+        $this->verifierCloture($now ?? new DateTimeImmutable());
+        $this->status = RendezVousStatus::HONORE;
+    }
+
+    /**
+     * Marque le rendez-vous comme ignore : le patient ne s'est pas presente
+     *
+     * @throws StatusChangeNotAllowedException si le RDV n'est pas PREVU ou n'a pas encore commence
+     */
+    public function ignorer(?DateTimeInterface $now = null): void {
+        $this->verifierCloture($now ?? new DateTimeImmutable());
+        $this->status = RendezVousStatus::IGNORE;
+    }
+
+    /**
+     * Un RDV ne peut etre honore ou ignore que s'il est PREVU et qu'il a commence
+     */
+    private function verifierCloture(DateTimeInterface $now): void {
+        if ($this->status !== RendezVousStatus::PREVU) {
+            throw new StatusChangeNotAllowedException(
+                "Impossible de changer l'etat d'un rendez-vous qui n'est pas a l'etat PREVU (statut actuel : {$this->status->name})."
+            );
+        }
+        if ($this->dateHeureDebut > $now) {
+            throw new StatusChangeNotAllowedException(
+                "Impossible d'honorer ou d'ignorer un rendez-vous qui n'a pas encore eu lieu."
+            );
+        }
+    }
+
     public function getId(): string {
         return $this->id;
     }

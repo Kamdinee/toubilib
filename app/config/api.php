@@ -6,6 +6,8 @@ use toubilib\adapters\controllers\actions\AfficherPraticienAction;
 use toubilib\adapters\controllers\actions\AfficherRendezVousAction;
 use toubilib\adapters\controllers\actions\AnnulerRendezVousAction;
 use toubilib\adapters\controllers\actions\CreerRendezVousAction;
+use toubilib\adapters\controllers\actions\HonorerRendezVousAction;
+use toubilib\adapters\controllers\actions\IgnorerRendezVousAction;
 use toubilib\adapters\controllers\actions\ListerPraticiensAction;
 use toubilib\adapters\controllers\middlewares\ValidationCreateRdvMiddleware;
 use toubilib\application\ports\api\ServicePraticienInterface;
@@ -34,6 +36,14 @@ return [
 
     AnnulerRendezVousAction::class => function (ContainerInterface $c) {
         return new AnnulerRendezVousAction($c->get(ServiceRendezVousInterface::class));
+    },
+
+    HonorerRendezVousAction::class => function (ContainerInterface $c) {
+        return new HonorerRendezVousAction($c->get(ServiceRendezVousInterface::class));
+    },
+
+    IgnorerRendezVousAction::class => function (ContainerInterface $c) {
+        return new IgnorerRendezVousAction($c->get(ServiceRendezVousInterface::class));
     },
 
     // middlewares

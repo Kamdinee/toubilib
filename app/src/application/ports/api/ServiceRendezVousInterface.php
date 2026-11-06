@@ -29,5 +29,20 @@ interface ServiceRendezVousInterface {
      * @throws StatusChangeNotAllowedException si le RDV ne peut pas etre annule
      */
     public function annuler(string $id): RendezVousDTO;
-}
 
+    /**
+     * Marque un rendez-vous comme honore
+     *
+     * @throws RendezVousNotFoundException si le RDV n'existe pas
+     * @throws StatusChangeNotAllowedException si le changement d'etat est refuse
+     */
+    public function honorer(string $id): RendezVousDTO;
+
+    /**
+     * Marque un rendez-vous comme ignore
+     *
+     * @throws RendezVousNotFoundException si le RDV n'existe pas
+     * @throws StatusChangeNotAllowedException si le changement d'etat est refuse
+     */
+    public function ignorer(string $id): RendezVousDTO;
+}

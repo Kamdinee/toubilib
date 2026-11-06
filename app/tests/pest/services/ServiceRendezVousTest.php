@@ -87,3 +87,13 @@ it('devrait lever une StatusChangeNotAllowedException si le RDV est dans le pass
         ->toThrow(StatusChangeNotAllowedException::class);
 });
 
+
+it('devrait honorer puis refuser d\'ignorer un RDV via le service', function () {
+    $repository = new InMemoryRendezVousRepository();
+    $repository->save(new RendezVous('r-passe', 'prat-1', 'pat-1', new DateTimeImmutable('-3 hours')));
+    $service = creerServiceRendezVous($repository);
+
+    expect($service->honorer('r-passe')->statusLibelle)->toBe('HONORE')
+        ->and($repository->findById('r-passe')->getStatus())->toBe(RendezVousStatus::HONORE)
+        ->and(fn () => $service->ignorer('r-passe'))->toThrow(StatusChangeNotAllowedException::class);
+});
