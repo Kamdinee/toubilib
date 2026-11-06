@@ -6,6 +6,7 @@ namespace toubilib\adapters\controllers\actions;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Slim\Exception\HttpBadRequestException;
+use Slim\Exception\HttpException;
 use Slim\Exception\HttpNotFoundException;
 use toubilib\application\ports\api\ServiceRendezVousInterface;
 use toubilib\domain\exceptions\RendezVousNotFoundException;
@@ -39,8 +40,8 @@ class AnnulerRendezVousAction extends AbstractAction {
             throw new HttpNotFoundException($rq, $e->getMessage());
 
         } catch (StatusChangeNotAllowedException $e) {
-            // erreur 400 si la regle metier refuse l'annulation
-            throw new HttpBadRequestException($rq, $e->getMessage());
+            // erreur 409 Conflict : la requete est valide mais l'etat du RDV refuse l'annulation
+            throw new HttpException($rq, $e->getMessage(), 409);
         }
     }
 }
