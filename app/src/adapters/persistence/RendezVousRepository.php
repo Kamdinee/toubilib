@@ -35,21 +35,40 @@ class RendezVousRepository implements RendezVousRepositoryInterface {
             throw new RendezVousNotFoundException("Rendez-vous avec l'identifiant $id introuvable");
         }
 
-        $dateDebut = new DateTimeImmutable($row['date_heure_debut']);
-        $dateFin = $row['date_heure_fin'] ? new DateTimeImmutable($row['date_heure_fin']) : null;
-        $dateCreation = $row['date_creation'] ? new DateTimeImmutable($row['date_creation']) : null;
-        $status = RendezVousStatus::from((int) $row['status']);
+        return $this->versEntite($row);
+    }
 
+    public function findByPraticienEntre(string $praticienId, DateTimeImmutable $debut, DateTimeImmutable $fin): array {
+        $stmt = $this->pdo->prepare(
+            'SELECT id, praticien_id, patient_id, date_heure_debut, status, duree, date_heure_fin, date_creation, motif_visite
+             FROM rdv
+             WHERE praticien_id = :praticien_id
+               AND date_heure_debut BETWEEN :debut AND :fin
+             ORDER BY date_heure_debut'
+        );
+        $stmt->execute([
+            'praticien_id' => $praticienId,
+            'debut' => $debut->format('Y-m-d H:i:s'),
+            'fin' => $fin->format('Y-m-d H:i:s'),
+        ]);
+
+        return array_map(fn (array $row) => $this->versEntite($row), $stmt->fetchAll(PDO::FETCH_ASSOC));
+    }
+
+    /**
+     * Construit l'entite RendezVous a partir d'une ligne de la table rdv
+     */
+    private function versEntite(array $row): RendezVous {
         return new RendezVous(
             id: (string) $row['id'],
             praticienId: (string) $row['praticien_id'],
             patientId: (string) $row['patient_id'],
-            dateHeureDebut: $dateDebut,
+            dateHeureDebut: new DateTimeImmutable($row['date_heure_debut']),
             duree: (int) $row['duree'],
-            dateHeureFin: $dateFin,
-            dateCreation: $dateCreation,
+            dateHeureFin: $row['date_heure_fin'] ? new DateTimeImmutable($row['date_heure_fin']) : null,
+            dateCreation: $row['date_creation'] ? new DateTimeImmutable($row['date_creation']) : null,
             motifVisite: $row['motif_visite'] !== null ? (string) $row['motif_visite'] : null,
-            status: $status
+            status: RendezVousStatus::from((int) $row['status'])
         );
     }
 

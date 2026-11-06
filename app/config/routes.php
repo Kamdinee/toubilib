@@ -9,6 +9,7 @@ use toubilib\adapters\controllers\actions\AnnulerRendezVousAction;
 use toubilib\adapters\controllers\actions\CreerRendezVousAction;
 use toubilib\adapters\controllers\actions\HonorerRendezVousAction;
 use toubilib\adapters\controllers\actions\IgnorerRendezVousAction;
+use toubilib\adapters\controllers\actions\ListerCreneauxAction;
 use toubilib\adapters\controllers\actions\ListerPraticiensAction;
 use toubilib\adapters\controllers\middlewares\ValidationCreateRdvMiddleware;
 
@@ -20,6 +21,8 @@ return function (App $app): App {
         $group->get('', ListerPraticiensAction::class)->setName('praticiens-lister');
         // fonctionnalite 2 : detail d'un praticien
         $group->get('/{id}', AfficherPraticienAction::class)->setName('praticien-afficher');
+        // fonctionnalite 7 : creneaux occupes d'un praticien (?debut=AAAA-MM-JJ&fin=AAAA-MM-JJ)
+        $group->get('/{id}/creneaux', ListerCreneauxAction::class)->setName('praticien-creneaux');
     });
 
     $app->group('/rdvs', function (RouteCollectorProxy $group) {

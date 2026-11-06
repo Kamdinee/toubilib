@@ -8,6 +8,7 @@ use toubilib\adapters\controllers\actions\AnnulerRendezVousAction;
 use toubilib\adapters\controllers\actions\CreerRendezVousAction;
 use toubilib\adapters\controllers\actions\HonorerRendezVousAction;
 use toubilib\adapters\controllers\actions\IgnorerRendezVousAction;
+use toubilib\adapters\controllers\actions\ListerCreneauxAction;
 use toubilib\adapters\controllers\actions\ListerPraticiensAction;
 use toubilib\adapters\controllers\middlewares\ValidationCreateRdvMiddleware;
 use toubilib\application\ports\api\ServicePraticienInterface;
@@ -23,6 +24,10 @@ return [
 
     AfficherPraticienAction::class => function (ContainerInterface $c) {
         return new AfficherPraticienAction($c->get(ServicePraticienInterface::class));
+    },
+
+    ListerCreneauxAction::class => function (ContainerInterface $c) {
+        return new ListerCreneauxAction($c->get(ServiceRendezVousInterface::class));
     },
 
     // rendez-vous

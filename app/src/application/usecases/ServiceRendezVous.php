@@ -3,7 +3,9 @@ declare(strict_types=1);
 
 namespace toubilib\application\usecases;
 
+use DateTimeImmutable;
 use toubilib\application\dto\CreateRdvDTO;
+use toubilib\application\dto\CreneauDTO;
 use toubilib\application\dto\RendezVousDTO;
 use toubilib\application\ports\api\ServiceRendezVousInterface;
 use toubilib\application\ports\spi\PatientRepositoryInterface;
@@ -11,6 +13,7 @@ use toubilib\application\ports\spi\PraticienRepositoryInterface;
 use toubilib\application\ports\spi\RendezVousRepositoryInterface;
 use toubilib\application\validators\RdvValidator;
 use toubilib\domain\entities\RendezVous;
+use toubilib\domain\entities\RendezVousStatus;
 use toubilib\domain\exceptions\PatientNotFoundException;
 use toubilib\domain\exceptions\PraticienNotFoundException;
 
@@ -96,6 +99,23 @@ class ServiceRendezVous implements ServiceRendezVousInterface {
         $this->rendezVousRepository->save($rdv);
 
         return $this->versDTO($rdv);
+    }
+
+    /**
+     * Creneaux occupes d'un praticien : ses RDV non annules entre deux dates
+     *
+     * @throws PraticienNotFoundException si le praticien n'existe pas
+     */
+    public function listerCreneauxOccupes(string $praticienId, DateTimeImmutable $debut, DateTimeImmutable $fin): array {
+        // leve PraticienNotFoundException si le praticien n'existe pas
+        $this->praticienRepository->findById($praticienId);
+
+        $rdvs = array_filter(
+            $this->rendezVousRepository->findByPraticienEntre($praticienId, $debut, $fin),
+            fn (RendezVous $rdv) => $rdv->getStatus() !== RendezVousStatus::ANNULE
+        );
+
+        return array_values(array_map(fn (RendezVous $rdv) => CreneauDTO::fromEntity($rdv), $rdvs));
     }
 
     /**
