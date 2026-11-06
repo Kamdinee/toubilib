@@ -1,0 +1,15 @@
+meta {
+  name: Annuler un rendez-vous passe (409)
+  type: http
+  seq: 6
+}
+
+patch {
+  url: {{baseUrl}}/rdvs/{{rdvPasseAHonorer}}/annuler
+  body: none
+  auth: none
+}
+
+assert {
+  res.status: eq 409
+}

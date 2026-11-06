@@ -1,0 +1,15 @@
+meta {
+  name: Rendez-vous inexistant (404)
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{baseUrl}}/rdvs/b2dd56c2-700b-3b49-915d-d3be96f7f6a
+  body: none
+  auth: none
+}
+
+assert {
+  res.status: eq 404
+}
