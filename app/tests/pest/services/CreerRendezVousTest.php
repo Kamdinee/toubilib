@@ -5,32 +5,69 @@ use tests\pest\fakes\InMemoryPatientRepository;
 use tests\pest\fakes\InMemoryPraticienRepository;
 use tests\pest\fakes\InMemoryRendezVousRepository;
 use toubilib\application\dto\CreateRdvDTO;
+use toubilib\application\dto\RendezVousDTO;
 use toubilib\application\usecases\ServiceRendezVous;
 use toubilib\application\validators\RdvValidator;
 use toubilib\domain\entities\Patient;
 use toubilib\domain\entities\Praticien;
+use toubilib\domain\entities\RendezVous;
+use toubilib\domain\entities\RendezVousStatus;
 use toubilib\domain\entities\Specialite;
+use toubilib\domain\exceptions\PraticienIndisponibleException;
 use toubilib\domain\exceptions\RendezVousInvalideException;
 
 /**
- * Service de creation avec un praticien 'prat-1' et un patient 'pat-1' connus
+ * Repositorys en memoire avec un praticien 'prat-1' et un patient 'pat-1' connus
  */
-function serviceCreationRdv(): ServiceRendezVous {
+function contexteCreationRdv(): array {
     $praticiens = new InMemoryPraticienRepository();
     $praticiens->add(new Praticien('prat-1', 'Paul', 'Marine', 'Paris', 'marine.paul@mail.fr', '0236112588', new Specialite(1, 'médecine générale')));
 
     $patients = new InMemoryPatientRepository();
     $patients->add(new Patient('pat-1', 'Teixeira', 'Denis', '0155016382'));
 
-    return new ServiceRendezVous(new InMemoryRendezVousRepository(), new RdvValidator($praticiens, $patients));
+    $rdvs = new InMemoryRendezVousRepository();
+    $service = new ServiceRendezVous($rdvs, $praticiens, $patients, new RdvValidator($praticiens, $patients));
+
+    return [$service, $rdvs, $praticiens];
 }
 
-it('devrait retourner les donnees recues si elles sont valides', function () {
-    $dto = new CreateRdvDTO('prat-1', 'pat-1', '2030-01-07 10:00', 'CI');
+function serviceCreationRdv(): ServiceRendezVous {
+    return contexteCreationRdv()[0];
+}
 
-    $resultat = serviceCreationRdv()->creerRendezVous($dto);
+it('devrait creer et sauvegarder un RDV valide', function () {
+    [$service, $rdvs] = contexteCreationRdv();
 
-    expect($resultat->toArray())->toBe($dto->toArray());
+    $resultat = $service->creerRendezVous(new CreateRdvDTO('prat-1', 'pat-1', '2030-01-07 10:00', 'CI'));
+
+    expect($resultat)->toBeInstanceOf(RendezVousDTO::class)
+        ->and($resultat->praticienId)->toBe('prat-1')
+        ->and($resultat->patientId)->toBe('pat-1')
+        ->and($resultat->dateHeureDebut)->toBe('2030-01-07 10:00:00')
+        ->and($resultat->dateHeureFin)->toBe('2030-01-07 10:30:00')
+        ->and($resultat->duree)->toBe(30)
+        ->and($resultat->statusLibelle)->toBe('PREVU');
+
+    // le RDV a bien ete sauvegarde
+    expect($rdvs->findById($resultat->id)->getMotifVisite())->toBe('CI');
+});
+
+it('devrait refuser un RDV si le praticien n\'est pas disponible', function () {
+    [$service, $rdvs, $praticiens] = contexteCreationRdv();
+    $praticiens->addRdv(new RendezVous('r1', 'prat-1', 'pat-2', new DateTimeImmutable('2030-01-07 10:00'), 30));
+
+    expect(fn () => $service->creerRendezVous(new CreateRdvDTO('prat-1', 'pat-1', '2030-01-07 10:15', 'CS')))
+        ->toThrow(PraticienIndisponibleException::class);
+});
+
+it('devrait accepter un RDV sur le creneau d\'un RDV annule', function () {
+    [$service, $rdvs, $praticiens] = contexteCreationRdv();
+    $praticiens->addRdv(new RendezVous('r1', 'prat-1', 'pat-2', new DateTimeImmutable('2030-01-07 10:00'), 30, status: RendezVousStatus::ANNULE));
+
+    $resultat = $service->creerRendezVous(new CreateRdvDTO('prat-1', 'pat-1', '2030-01-07 10:00', 'CI'));
+
+    expect($resultat->dateHeureDebut)->toBe('2030-01-07 10:00:00');
 });
 
 it('devrait refuser un praticien qui n\'existe pas', function () {

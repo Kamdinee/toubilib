@@ -18,8 +18,9 @@ interface ServiceRendezVousInterface {
      * Cree un rendez-vous a partir des donnees recues
      *
      * @throws RendezVousInvalideException si les donnees ne sont pas valides
+     * @throws PraticienIndisponibleException si le praticien n'est pas disponible
      */
-    public function creerRendezVous(CreateRdvDTO $dto): CreateRdvDTO;
+    public function creerRendezVous(CreateRdvDTO $dto): RendezVousDTO;
 
     /**
      * Annule un rendez-vous a partir de son identifiant

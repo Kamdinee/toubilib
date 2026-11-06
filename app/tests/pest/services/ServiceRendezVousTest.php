@@ -14,8 +14,9 @@ use toubilib\domain\exceptions\RendezVousNotFoundException;
 use toubilib\domain\exceptions\StatusChangeNotAllowedException;
 
 function creerServiceRendezVous(InMemoryRendezVousRepository $repository): ServiceRendezVous {
-    $validator = new RdvValidator(new InMemoryPraticienRepository(), new InMemoryPatientRepository());
-    return new ServiceRendezVous($repository, $validator);
+    $praticiens = new InMemoryPraticienRepository();
+    $patients = new InMemoryPatientRepository();
+    return new ServiceRendezVous($repository, $praticiens, $patients, new RdvValidator($praticiens, $patients));
 }
 
 it('devrait retourner le detail d\'un rendez-vous', function () {
