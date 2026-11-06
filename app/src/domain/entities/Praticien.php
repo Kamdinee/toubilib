@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace toubilib\domain\entities;
 
 use DateTimeImmutable;
+use toubilib\domain\exceptions\PraticienIndisponibleException;
 use toubilib\domain\exceptions\RendezVousInvalideException;
 
 class Praticien {
@@ -32,7 +33,8 @@ class Praticien {
         private Specialite $specialite,
         private string $titre = 'Dr.',
         private ?string $rppsId = null,
-        private bool $accepteNouveauPatient = true
+        private bool $accepteNouveauPatient = true,
+        private array $rdvs = []
     ) {}
 
     /**
@@ -69,6 +71,39 @@ class Praticien {
         $fermeture = $debut->modify(self::HEURE_FIN);
 
         return $debut >= $ouverture && $fin <= $fermeture;
+    }
+
+    /**
+     * RDV connus du praticien, remplis par le repository au chargement du praticien.
+     * Pour verifier une disponibilite, les RDV de la journee concernee suffisent.
+     *
+     * @param RendezVous[] $rdvs
+     */
+    public function setRdvs(array $rdvs): void {
+        $this->rdvs = $rdvs;
+    }
+
+    /**
+     * @return RendezVous[]
+     */
+    public function getRdvs(): array {
+        return $this->rdvs;
+    }
+
+    /**
+     * Verifie que le RDV demande ne chevauche aucun RDV du praticien
+     *
+     * @throws PraticienIndisponibleException si le praticien n'est pas disponible
+     */
+    public function verifierDisponibilite(RendezVous $rdvDemande): void {
+        foreach ($this->rdvs as $rdv) {
+            if ($rdvDemande->chevauche($rdv)) {
+                throw new PraticienIndisponibleException(
+                    "Le praticien n'est pas disponible : un rendez-vous existe deja de "
+                    . $rdv->getDateHeureDebut()->format('H:i') . " a " . $rdv->getDateHeureFin()->format('H:i')
+                );
+            }
+        }
     }
 
     public function getId(): string {

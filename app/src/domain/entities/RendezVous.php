@@ -6,6 +6,7 @@ namespace toubilib\domain\entities;
 use DateTimeInterface;
 use DateTimeImmutable;
 use Ramsey\Uuid\Uuid;
+use toubilib\domain\exceptions\PraticienIndisponibleException;
 use toubilib\domain\exceptions\RendezVousInvalideException;
 use toubilib\domain\exceptions\StatusChangeNotAllowedException;
 
@@ -33,10 +34,12 @@ class RendezVous {
     }
 
     /**
-     * Validation-creation d'un rendez-vous : verifie le motif et la date demandes
-     * pour le praticien, puis cree le rendez-vous
+     * Validation-creation d'un rendez-vous : verifie le motif, la date et la
+     * disponibilite du praticien, puis cree le rendez-vous.
+     * Le praticien doit avoir ete charge avec ses RDV de la journee demandee.
      *
      * @throws RendezVousInvalideException si le motif ou la date ne sont pas valides
+     * @throws PraticienIndisponibleException si le RDV chevauche un RDV du praticien
      */
     public static function creer(
         Praticien $praticien,
@@ -63,7 +66,7 @@ class RendezVous {
             );
         }
 
-        return new self(
+        $rdv = new self(
             id: Uuid::uuid4()->toString(),
             praticienId: $praticien->getId(),
             patientId: $patient->getId(),
@@ -72,6 +75,11 @@ class RendezVous {
             dateCreation: $now,
             motifVisite: $motif
         );
+
+        // le praticien doit etre disponible : aucun de ses RDV ne doit chevaucher le nouveau
+        $praticien->verifierDisponibilite($rdv);
+
+        return $rdv;
     }
 
     /**

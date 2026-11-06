@@ -6,6 +6,7 @@ use toubilib\domain\entities\Praticien;
 use toubilib\domain\entities\RendezVous;
 use toubilib\domain\entities\RendezVousStatus;
 use toubilib\domain\entities\Specialite;
+use toubilib\domain\exceptions\PraticienIndisponibleException;
 use toubilib\domain\exceptions\RendezVousInvalideException;
 
 function praticienCreation(): Praticien {
@@ -51,4 +52,25 @@ it('devrait refuser une date le week-end', function () {
 it('devrait refuser un RDV qui depasse la plage horaire', function () {
     expect(fn () => RendezVous::creer(praticienCreation(), patientCreation(), new DateTimeImmutable('2030-01-07 18:45'), 'CI', maintenant()))
         ->toThrow(RendezVousInvalideException::class);
+});
+
+it('devrait refuser un RDV si le praticien n\'est pas disponible', function () {
+    $praticien = praticienCreation();
+    $praticien->setRdvs([
+        new RendezVous('r1', 'prat-1', 'pat-2', new DateTimeImmutable('2030-01-07 10:00'), 30),
+    ]);
+
+    expect(fn () => RendezVous::creer($praticien, patientCreation(), new DateTimeImmutable('2030-01-07 10:20'), 'CS', maintenant()))
+        ->toThrow(PraticienIndisponibleException::class);
+});
+
+it('devrait creer un RDV juste apres un RDV existant du praticien', function () {
+    $praticien = praticienCreation();
+    $praticien->setRdvs([
+        new RendezVous('r1', 'prat-1', 'pat-2', new DateTimeImmutable('2030-01-07 10:00'), 30),
+    ]);
+
+    $rdv = RendezVous::creer($praticien, patientCreation(), new DateTimeImmutable('2030-01-07 10:30'), 'CS', maintenant());
+
+    expect($rdv->getDateHeureFin()->format('H:i'))->toBe('10:45');
 });

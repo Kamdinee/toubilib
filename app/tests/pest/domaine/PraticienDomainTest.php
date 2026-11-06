@@ -2,7 +2,9 @@
 declare(strict_types=1);
 
 use toubilib\domain\entities\Praticien;
+use toubilib\domain\entities\RendezVous;
 use toubilib\domain\entities\Specialite;
+use toubilib\domain\exceptions\PraticienIndisponibleException;
 use toubilib\domain\exceptions\RendezVousInvalideException;
 
 function unPraticien(): Praticien {
@@ -55,4 +57,28 @@ it('devrait refuser un RDV hors de la plage horaire', function () {
         ->and($praticien->accepteDate(new DateTimeImmutable('2030-01-07 19:00'), 15))->toBeFalse()
         // commence dans la plage mais finit apres 19h
         ->and($praticien->accepteDate(new DateTimeImmutable('2030-01-07 18:45'), 30))->toBeFalse();
+});
+
+it('devrait accepter un RDV qui ne chevauche aucun RDV du praticien', function () {
+    $praticien = unPraticien();
+    $praticien->setRdvs([
+        new RendezVous('r1', 'prat-1', 'pat-2', new DateTimeImmutable('2030-01-07 10:00'), 30),
+        new RendezVous('r2', 'prat-1', 'pat-3', new DateTimeImmutable('2030-01-07 11:00'), 20),
+    ]);
+    $demande = new RendezVous('r3', 'prat-1', 'pat-1', new DateTimeImmutable('2030-01-07 10:30'), 30);
+
+    $praticien->verifierDisponibilite($demande);
+
+    expect($praticien->getRdvs())->toHaveCount(2);
+});
+
+it('devrait lever une exception si le RDV chevauche un RDV du praticien', function () {
+    $praticien = unPraticien();
+    $praticien->setRdvs([
+        new RendezVous('r1', 'prat-1', 'pat-2', new DateTimeImmutable('2030-01-07 10:00'), 30),
+    ]);
+    $demande = new RendezVous('r2', 'prat-1', 'pat-1', new DateTimeImmutable('2030-01-07 10:15'), 15);
+
+    expect(fn () => $praticien->verifierDisponibilite($demande))
+        ->toThrow(PraticienIndisponibleException::class);
 });
