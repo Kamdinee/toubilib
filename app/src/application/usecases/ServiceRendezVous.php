@@ -14,6 +14,15 @@ class ServiceRendezVous implements ServiceRendezVousInterface {
     ) {}
 
     /**
+     * Retourne le detail d'un rendez-vous
+     *
+     * @throws RendezVousNotFoundException si le RDV n'existe pas
+     */
+    public function consulter(string $id): RendezVousDTO {
+        return RendezVousDTO::fromEntity($this->rendezVousRepository->findById($id));
+    }
+
+    /**
      * Annule un rendez-vous et sauvegarde sa modification d'etat
      * 
      * @throws RendezVousNotFoundException si le RDV n'existe pas

@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 use Psr\Container\ContainerInterface;
 use toubilib\adapters\controllers\actions\AfficherPraticienAction;
+use toubilib\adapters\controllers\actions\AfficherRendezVousAction;
 use toubilib\adapters\controllers\actions\AnnulerRendezVousAction;
 use toubilib\adapters\controllers\actions\ListerPraticiensAction;
 use toubilib\application\ports\api\ServicePraticienInterface;
@@ -21,6 +22,10 @@ return [
     },
 
     // rendez-vous
+    AfficherRendezVousAction::class => function (ContainerInterface $c) {
+        return new AfficherRendezVousAction($c->get(ServiceRendezVousInterface::class));
+    },
+
     AnnulerRendezVousAction::class => function (ContainerInterface $c) {
         return new AnnulerRendezVousAction($c->get(ServiceRendezVousInterface::class));
     },
