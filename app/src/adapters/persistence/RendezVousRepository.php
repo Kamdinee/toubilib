@@ -54,10 +54,9 @@ class RendezVousRepository implements RendezVousRepositoryInterface {
     }
 
     /**
-     * Sauvegarde la modification d'un rendez-vous
+     * Sauvegarde la modification d'un rendez-vous existant
      */
     public function save(RendezVous $rdv): void {
-        // tente une mise a jour d'abord
         $stmt = $this->pdo->prepare(
             'UPDATE rdv
              SET status = :status,
@@ -76,25 +75,27 @@ class RendezVousRepository implements RendezVousRepositoryInterface {
             'duree' => $rdv->getDuree(),
             'motif_visite' => $rdv->getMotifVisite(),
         ]);
+    }
 
-        // si le RDV n'existait pas encore on l'insere
-        if ($stmt->rowCount() === 0) {
-            $insertStmt = $this->pdo->prepare(
-                'INSERT INTO rdv (id, praticien_id, patient_id, date_heure_debut, status, duree, date_heure_fin, date_creation, motif_visite)
-                 VALUES (:id, :praticien_id, :patient_id, :date_heure_debut, :status, :duree, :date_heure_fin, :date_creation, :motif_visite)'
-            );
-            $insertStmt->execute([
-                'id' => $rdv->getId(),
-                'praticien_id' => $rdv->getPraticienId(),
-                'patient_id' => $rdv->getPatientId(),
-                'date_heure_debut' => $rdv->getDateHeureDebut()->format('Y-m-d H:i:s'),
-                'status' => $rdv->getStatus()->value,
-                'duree' => $rdv->getDuree(),
-                'date_heure_fin' => $rdv->getDateHeureFin()?->format('Y-m-d H:i:s'),
-                'date_creation' => $rdv->getDateCreation()?->format('Y-m-d H:i:s'),
-                'motif_visite' => $rdv->getMotifVisite(),
-            ]);
-        }
+    /**
+     * Sauvegarde un nouveau rendez-vous dans la base
+     */
+    public function ajouter(RendezVous $rdv): void {
+        $stmt = $this->pdo->prepare(
+            'INSERT INTO rdv (id, praticien_id, patient_id, date_heure_debut, status, duree, date_heure_fin, date_creation, motif_visite)
+             VALUES (:id, :praticien_id, :patient_id, :date_heure_debut, :status, :duree, :date_heure_fin, :date_creation, :motif_visite)'
+        );
+
+        $stmt->execute([
+            'id' => $rdv->getId(),
+            'praticien_id' => $rdv->getPraticienId(),
+            'patient_id' => $rdv->getPatientId(),
+            'date_heure_debut' => $rdv->getDateHeureDebut()->format('Y-m-d H:i:s'),
+            'status' => $rdv->getStatus()->value,
+            'duree' => $rdv->getDuree(),
+            'date_heure_fin' => $rdv->getDateHeureFin()?->format('Y-m-d H:i:s'),
+            'date_creation' => $rdv->getDateCreation()?->format('Y-m-d H:i:s'),
+            'motif_visite' => $rdv->getMotifVisite(),
+        ]);
     }
 }
-

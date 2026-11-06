@@ -63,6 +63,7 @@ Les tests de `RendezVousRepository` nécessitent la base PostgreSQL démarrée.
 | GET | `/praticiens` | 1. Lister les praticiens |
 | GET | `/praticiens/{id}` | 2. Détail d'un praticien |
 | GET | `/rdvs/{id}` | 3. Détail d'un RDV |
+| POST | `/rdvs` | 5. Créer un RDV |
 | PATCH | `/rdvs/{id}` | 6. Annuler un RDV |
 
 ### Lister les praticiens (fonctionnalité 1)
@@ -101,6 +102,40 @@ Les tests de `RendezVousRepository` nécessitent la base PostgreSQL démarrée.
 `GET /rdvs/{id}` → `200` avec le RDV (même format que la réponse d'annulation ci-dessous),
 ou `404` si le RDV n'existe pas.
 
+### Créer un rendez-vous (fonctionnalité 5)
+
+`POST /rdvs`
+
+```json
+{
+  "praticien_id": "4305f5e9-be5a-4ccf-8792-7e07d7017363",
+  "patient_id": "da362a38-c1bf-39ed-8b2e-3bc99a86cfde",
+  "date_heure_debut": "2030-01-08 14:00",
+  "motif_visite": "CO"
+}
+```
+
+| Code | Cas |
+|---|---|
+| 201 | RDV créé : le RDV est renvoyé en JSON, son URL est dans le header `Location` |
+| 400 | Données absentes ou mal formées, praticien ou patient inexistant, motif ou date non acceptés |
+| 409 | Le praticien n'est pas disponible : le RDV chevauche un RDV existant |
+
+Règles métier :
+
+- motifs acceptés et durée du RDV : `CI` 30 min, `CO` 20 min, `CS` 15 min ;
+- RDV du lundi au vendredi, entièrement compris entre 9h et 19h, et dans le futur ;
+- le RDV ne doit chevaucher aucun RDV non annulé du praticien.
+
+Traitement d'une demande :
+
+1. `ValidationCreateRdvMiddleware` construit un `CreateRdvDTO` à partir du corps de la requête
+   (`CreateRdvDTO::fromArray`) : présence, type et format des champs, suppression des espaces et balises ;
+2. `CreerRendezVousAction` appelle `ServiceRendezVous::creerRendezVous()` ;
+3. le service valide les données avec `RdvValidator` (praticien et patient existants, motif, date),
+   charge le patient et le praticien avec ses RDV du jour, crée l'entité avec `RendezVous::creer()`
+   (motif, date, disponibilité) puis la sauvegarde avec `RendezVousRepository::ajouter()`.
+
 ### Annuler un rendez-vous (fonctionnalité 6)
 
 `PATCH /rdvs/{id}`
@@ -136,7 +171,7 @@ Réponse :
   "date_creation": "2026-12-01 00:00:00",
   "duree": 30,
   "motif_visite": "CI",
-  "status": 1,
+  "status": -1,
   "status_libelle": "ANNULE"
 }
 ```
@@ -150,7 +185,20 @@ VALUES ('rdv-demo', '4305f5e9-be5a-4ccf-8792-7e07d7017363', 'da362a38-c1bf-39ed-
         NOW() + INTERVAL '7 days', 0, 30, NOW() + INTERVAL '7 days 30 minutes', NOW(), 'CI');
 ```
 
-Statuts d'un RDV : `0` prévu, `1` annulé, `2` honoré, `3` ignoré.
+Statuts d'un RDV : `0` prévu, `-1` annulé, `2` honoré, `3` ignoré (`-1` est la valeur utilisée par les données de départ).
+
+## Réponses aux questions du TD 1.3
+
+**Condition de chevauchement.** Un RDV souhaité `[debutS, finS[` chevauche un RDV testé `[debutT, finT[`
+si et seulement si `debutS < finT` et `debutT < finS`. Le RDV souhaité est donc compatible si
+`finS <= debutT` ou `debutS >= finT` : un RDV qui commence exactement à la fin d'un autre est accepté.
+Un RDV annulé ne bloque pas son créneau (`RendezVous::chevauche`).
+
+**Qui remplit la liste des RDV du praticien, et quand ?** C'est l'adaptateur de persistance, au moment
+où le service charge le praticien pour créer un RDV (`PraticienRepository::findByIdAvecRdvsDuJour`).
+Il n'est pas nécessaire de charger tous les RDV du praticien : un RDV tient dans une seule journée
+(entre 9h et 19h), donc seuls les RDV non annulés de la journée demandée peuvent le chevaucher.
+Ce sous-ensemble suffit.
 
 ## Modèle du domaine
 
@@ -204,15 +252,17 @@ Racine PSR-4 : `toubilib\` → `app/src/`
 
 | Namespace | Rôle |
 |---|---|
-| `toubilib\domain\entities` | Entités métier (`RendezVous`, `RendezVousStatus`, `Praticien`, `Specialite`) et leurs règles |
+| `toubilib\domain\entities` | Entités métier (`RendezVous`, `RendezVousStatus`, `Praticien`, `Specialite`, `Patient`) et leurs règles |
 | `toubilib\domain\exceptions` | Exceptions métier |
 | `toubilib\application\ports\api` | Interfaces des services exposés (`ServiceRendezVousInterface`, `ServicePraticienInterface`) |
 | `toubilib\application\ports\spi` | Interfaces des dépendances externes (`RendezVousRepositoryInterface`, `PraticienRepositoryInterface`) |
 | `toubilib\application\usecases` | Services applicatifs (`ServiceRendezVous`, `ServicePraticien`) |
-| `toubilib\application\dto` | DTO renvoyés par les services |
+| `toubilib\application\dto` | DTO reçus et renvoyés par les services |
+| `toubilib\application\validators` | Validation métier des données reçues (`RdvValidator`) |
+| `toubilib\application\exceptions` | Exceptions de l'application (`DonneesInvalidesException`) |
 | `toubilib\adapters\persistence` | Adaptateurs de persistance PDO |
 | `toubilib\adapters\controllers\actions` | Actions Slim |
-| `toubilib\adapters\controllers\middlewares` | Middlewares et rendu JSON |
+| `toubilib\adapters\controllers\middlewares` | Middlewares (`ValidationCreateRdvMiddleware`) et rendu JSON |
 | `tests\` → `app/tests/` | Tests Pest |
 
 Le domaine et l'application ne dépendent que des interfaces : les adaptateurs
@@ -221,8 +271,8 @@ sont branchés par le conteneur PHP-DI, dont les définitions sont réparties da
 | Fichier | Contenu |
 |---|---|
 | `settings.php` | Variables de configuration (base de données, affichage des erreurs) |
-| `services.php` | Connexion PDO, repositorys et services métier |
-| `api.php` | Actions Slim |
+| `services.php` | Connexion PDO, repositorys, validateurs et services métier |
+| `api.php` | Actions et middlewares Slim |
 | `routes.php` | Routes de l'API |
 
 ## Tableau de bord
@@ -233,6 +283,6 @@ sont branchés par le conteneur PHP-DI, dont les définitions sont réparties da
 | 2 | Détail d'un praticien | Fait (TD2) | |
 | 3 | Détail d'un RDV | Fait (TD2) | |
 | 4 | Agenda d'un praticien | À faire | |
-| 5 | Créer un RDV | À faire | |
+| 5 | Créer un RDV | Fait (TD 1.3) | |
 | 6 | Annuler un RDV | Fait (TD1) | |
 | 7 | Créneaux occupés d'un praticien | À faire | |

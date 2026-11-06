@@ -5,6 +5,9 @@ namespace toubilib\domain\entities;
 
 use DateTimeInterface;
 use DateTimeImmutable;
+use Ramsey\Uuid\Uuid;
+use toubilib\domain\exceptions\PraticienIndisponibleException;
+use toubilib\domain\exceptions\RendezVousInvalideException;
 use toubilib\domain\exceptions\StatusChangeNotAllowedException;
 
 class RendezVous {
@@ -28,6 +31,72 @@ class RendezVous {
         if ($this->dateCreation === null) {
             $this->dateCreation = new DateTimeImmutable();
         }
+    }
+
+    /**
+     * Validation-creation d'un rendez-vous : verifie le motif, la date et la
+     * disponibilite du praticien, puis cree le rendez-vous.
+     * Le praticien doit avoir ete charge avec ses RDV de la journee demandee.
+     *
+     * @throws RendezVousInvalideException si le motif ou la date ne sont pas valides
+     * @throws PraticienIndisponibleException si le RDV chevauche un RDV du praticien
+     */
+    public static function creer(
+        Praticien $praticien,
+        Patient $patient,
+        DateTimeImmutable $dateHeureDebut,
+        string $motif,
+        ?DateTimeImmutable $now = null
+    ): self {
+        $now = $now ?? new DateTimeImmutable();
+
+        // le motif doit etre accepte par le praticien, il determine la duree
+        $duree = $praticien->dureeRdv($motif);
+
+        // la date doit etre dans le futur
+        if ($dateHeureDebut <= $now) {
+            throw new RendezVousInvalideException("La date du rendez-vous doit etre dans le futur");
+        }
+
+        // la date doit etre possible pour le praticien
+        if (!$praticien->accepteDate($dateHeureDebut, $duree)) {
+            throw new RendezVousInvalideException(
+                "Le praticien ne prend pas de rendez-vous a cette date : du lundi au vendredi, entre "
+                . Praticien::HEURE_DEBUT . " et " . Praticien::HEURE_FIN
+            );
+        }
+
+        $rdv = new self(
+            id: Uuid::uuid4()->toString(),
+            praticienId: $praticien->getId(),
+            patientId: $patient->getId(),
+            dateHeureDebut: $dateHeureDebut,
+            duree: $duree,
+            dateCreation: $now,
+            motifVisite: $motif
+        );
+
+        // le praticien doit etre disponible : aucun de ses RDV ne doit chevaucher le nouveau
+        $praticien->verifierDisponibilite($rdv);
+
+        return $rdv;
+    }
+
+    /**
+     * Indique si ce rendez-vous chevauche un autre rendez-vous.
+     *
+     * Deux RDV [debutA, finA[ et [debutB, finB[ se chevauchent si et seulement si
+     *     debutA < finB  ET  debutB < finA
+     * Un RDV qui commence exactement a la fin d'un autre ne le chevauche donc pas.
+     * Un RDV annule ne bloque plus son creneau : il ne chevauche rien.
+     */
+    public function chevauche(RendezVous $autre): bool {
+        if ($this->status === RendezVousStatus::ANNULE || $autre->status === RendezVousStatus::ANNULE) {
+            return false;
+        }
+
+        return $this->dateHeureDebut < $autre->dateHeureFin
+            && $autre->dateHeureDebut < $this->dateHeureFin;
     }
 
     /**

@@ -18,6 +18,10 @@ class InMemoryRendezVousRepository implements RendezVousRepositoryInterface {
         $this->store[$rdv->getId()] = $rdv;
     }
 
+    public function ajouter(RendezVous $rdv): void {
+        $this->store[$rdv->getId()] = $rdv;
+    }
+
     public function findById(string $id): RendezVous {
         if (!isset($this->store[$id])) {
             throw new RendezVousNotFoundException("Rendez-vous avec l'identifiant $id introuvable");

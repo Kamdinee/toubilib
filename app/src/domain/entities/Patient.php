@@ -1,0 +1,57 @@
+<?php
+declare(strict_types=1);
+
+namespace toubilib\domain\entities;
+
+use DateTimeInterface;
+
+class Patient {
+
+    public function __construct(
+        private string $id,
+        private string $nom,
+        private string $prenom,
+        private string $telephone,
+        private ?DateTimeInterface $dateNaissance = null,
+        private ?string $adresse = null,
+        private ?string $codePostal = null,
+        private ?string $ville = null,
+        private ?string $email = null
+    ) {}
+
+    public function getId(): string {
+        return $this->id;
+    }
+
+    public function getNom(): string {
+        return $this->nom;
+    }
+
+    public function getPrenom(): string {
+        return $this->prenom;
+    }
+
+    public function getTelephone(): string {
+        return $this->telephone;
+    }
+
+    public function getDateNaissance(): ?DateTimeInterface {
+        return $this->dateNaissance;
+    }
+
+    public function getAdresse(): ?string {
+        return $this->adresse;
+    }
+
+    public function getCodePostal(): ?string {
+        return $this->codePostal;
+    }
+
+    public function getVille(): ?string {
+        return $this->ville;
+    }
+
+    public function getEmail(): ?string {
+        return $this->email;
+    }
+}
