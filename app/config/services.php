@@ -12,6 +12,7 @@ use toubilib\application\ports\spi\PraticienRepositoryInterface;
 use toubilib\application\ports\spi\RendezVousRepositoryInterface;
 use toubilib\application\usecases\ServicePraticien;
 use toubilib\application\usecases\ServiceRendezVous;
+use toubilib\application\validators\RdvValidator;
 
 // definitions des services et des repositorys
 return [
@@ -39,9 +40,20 @@ return [
         return new PatientRepository($c->get('toubilib.pdo'));
     },
 
+    // validateurs
+    RdvValidator::class => function (ContainerInterface $c) {
+        return new RdvValidator(
+            $c->get(PraticienRepositoryInterface::class),
+            $c->get(PatientRepositoryInterface::class)
+        );
+    },
+
     // services metier
     ServiceRendezVousInterface::class => function (ContainerInterface $c) {
-        return new ServiceRendezVous($c->get(RendezVousRepositoryInterface::class));
+        return new ServiceRendezVous(
+            $c->get(RendezVousRepositoryInterface::class),
+            $c->get(RdvValidator::class)
+        );
     },
 
     ServicePraticienInterface::class => function (ContainerInterface $c) {
