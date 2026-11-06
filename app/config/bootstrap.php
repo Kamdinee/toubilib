@@ -4,6 +4,7 @@ declare(strict_types=1);
 use DI\ContainerBuilder;
 use Dotenv\Dotenv;
 use Slim\Factory\AppFactory;
+use toubilib\adapters\controllers\middlewares\CorsMiddleware;
 
 // chargement des variables d'environnement
 $dotenv = Dotenv::createImmutable(__DIR__);
@@ -23,15 +24,15 @@ $app = AppFactory::createFromContainer($container);
 $app->addBodyParsingMiddleware();
 $app->addRoutingMiddleware();
 
-// gestionnaire d'erreurs au format JSON
+// gestionnaire d'erreurs par defaut de Slim, reponses toujours au format JSON :
+// {"message": "404 Not Found", "exception": [{"type", "code", "message", "file", "line"}]}
+// (le detail "exception" n'est affiche que si displayErrorDetails vaut true)
 $errorMiddleware = $app->addErrorMiddleware($container->get('displayErrorDetails'), false, false);
-$errorHandler = $errorMiddleware->getDefaultErrorHandler();
-$errorHandler->forceContentType('application/json');
-$errorHandler->registerErrorRenderer('application/json', function ($exception, $displayErrorDetails) {
-    return json_encode([
-        'error' => $exception->getMessage()
-    ], JSON_UNESCAPED_UNICODE);
-});
+$errorMiddleware->getDefaultErrorHandler()->forceContentType('application/json');
+
+// headers CORS : ajoute en dernier pour etre execute en premier,
+// les reponses d'erreur recoivent donc aussi les headers CORS
+$app->add(CorsMiddleware::class);
 
 // declaration des routes de l'API
 $app = (require __DIR__ . '/routes.php')($app);

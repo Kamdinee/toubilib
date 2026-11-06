@@ -1,0 +1,17 @@
+meta {
+  name: Detail d'un rendez-vous
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/rdvs/{{rdvId}}
+  body: none
+  auth: none
+}
+
+assert {
+  res.status: eq 200
+  res.body.type: eq ressource
+  res.body.rendez_vous.id: eq {{rdvId}}
+}

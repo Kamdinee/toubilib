@@ -1,0 +1,23 @@
+meta {
+  name: Creer un rendez-vous avec des donnees invalides (400)
+  type: http
+  seq: 4
+}
+
+post {
+  url: {{baseUrl}}/rdvs
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "praticien_id": "{{praticienId}}",
+    "date_heure_debut": "05/12/2030",
+    "motif_visite": 12
+  }
+}
+
+assert {
+  res.status: eq 400
+}

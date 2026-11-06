@@ -3,6 +3,8 @@ declare(strict_types=1);
 
 namespace toubilib\application\dto;
 
+use toubilib\domain\entities\Patient;
+use toubilib\domain\entities\Praticien;
 use toubilib\domain\entities\RendezVous;
 
 final class RendezVousDTO {
@@ -17,13 +19,17 @@ final class RendezVousDTO {
         public readonly int $duree,
         public readonly ?string $motifVisite,
         public readonly int $status,
-        public readonly string $statusLibelle
+        public readonly string $statusLibelle,
+        public readonly ?string $motifLibelle = null,
+        public readonly ?string $praticienNom = null,
+        public readonly ?string $patientNom = null
     ) {}
 
     /**
-     * Crée un DTO à partir de l'entité métier RendezVous
+     * Crée un DTO à partir de l'entité métier RendezVous,
+     * avec les noms du praticien et du patient s'ils sont fournis
      */
-    public static function fromEntity(RendezVous $rdv): self {
+    public static function fromEntity(RendezVous $rdv, ?Praticien $praticien = null, ?Patient $patient = null): self {
         return new self(
             id: $rdv->getId(),
             praticienId: $rdv->getPraticienId(),
@@ -34,7 +40,10 @@ final class RendezVousDTO {
             duree: $rdv->getDuree(),
             motifVisite: $rdv->getMotifVisite(),
             status: $rdv->getStatus()->value,
-            statusLibelle: $rdv->getStatus()->name
+            statusLibelle: $rdv->getStatus()->name,
+            motifLibelle: Praticien::LIBELLES_MOTIFS[$rdv->getMotifVisite() ?? ''] ?? $rdv->getMotifVisite(),
+            praticienNom: $praticien !== null ? $praticien->getPrenom() . ' ' . $praticien->getNom() : null,
+            patientNom: $patient !== null ? $patient->getPrenom() . ' ' . $patient->getNom() : null
         );
     }
 

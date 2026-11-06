@@ -1,0 +1,19 @@
+meta {
+  name: Ignorer un rendez-vous passe
+  type: http
+  seq: 8
+}
+
+patch {
+  url: {{baseUrl}}/rdvs/{{rdvPasseAIgnorer}}/ignorer
+  body: none
+  auth: none
+}
+
+docs {
+  200 la premiere fois, puis 409 : le RDV n'est plus a l'etat PREVU.
+}
+
+assert {
+  res.status: in 200, 409
+}

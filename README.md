@@ -56,51 +56,117 @@ docker compose exec api.toubilib vendor/bin/pest
 Les tests du domaine, du service et du DTO tournent sans base de données (repository en mémoire).
 Les tests de `RendezVousRepository` nécessitent la base PostgreSQL démarrée.
 
+### Tests de l'API avec Bruno
+
+Le dossier `bruno/` contient une collection [Bruno](https://www.usebruno.com) avec une requête par route,
+cas d'erreur compris, et des assertions sur les statuts de retour. Ouvrir le dossier dans Bruno et
+choisir l'environnement `local` (API sur http://localhost:7080), ou en ligne de commande :
+
+```bash
+cd bruno
+npx @usebruno/cli run --env local
+```
+
 ## API
 
-| Méthode | URL | Fonctionnalité |
-|---|---|---|
-| GET | `/praticiens` | 1. Lister les praticiens |
-| GET | `/praticiens/{id}` | 2. Détail d'un praticien |
-| GET | `/rdvs/{id}` | 3. Détail d'un RDV |
-| POST | `/rdvs` | 5. Créer un RDV |
-| PATCH | `/rdvs/{id}` | 6. Annuler un RDV |
+Toutes les réponses sont au format JSON. Les ressources sont accompagnées de liens HATEOAS (`links`).
+Les headers CORS sont ajoutés à toutes les réponses (`CorsMiddleware`).
 
-### Lister les praticiens (fonctionnalité 1)
+### Conception des routes (TD 1.4, exercice 1)
 
-`GET /praticiens` → `200`
+| Cas d'utilisation | Méthode et URI | Succès | Erreurs |
+|---|---|---|---|
+| Lister les praticiens | `GET /praticiens` | 200 | |
+| Détail d'un praticien | `GET /praticiens/{id}` | 200 | 404 praticien inexistant |
+| Créneaux occupés d'un praticien | `GET /praticiens/{id}/creneaux?debut=AAAA-MM-JJ&fin=AAAA-MM-JJ` | 200 | 400 période invalide, 404 praticien inexistant |
+| Agenda d'un praticien sur une période | `GET /praticiens/{id}/rdvs?debut=AAAA-MM-JJ&fin=AAAA-MM-JJ` | 200 | 400 période invalide, 404 praticien inexistant |
+| Détail d'un RDV | `GET /rdvs/{id}` | 200 | 404 RDV inexistant |
+| Créer un RDV | `POST /rdvs` | 201 + header `Location` | 400 données invalides, 409 praticien indisponible |
+| Annuler un RDV | `PATCH /rdvs/{id}/annuler` | 200 | 404 RDV inexistant, 409 RDV passé ou pas à l'état prévu |
+| Honorer un RDV | `PATCH /rdvs/{id}/honorer` | 200 | 404 RDV inexistant, 409 RDV futur ou pas à l'état prévu |
+| Ignorer un RDV | `PATCH /rdvs/{id}/ignorer` | 200 | 404 RDV inexistant, 409 RDV futur ou pas à l'état prévu |
+
+Choix de conception :
+
+- les agendas et créneaux sont des sous-ressources du praticien (`/praticiens/{id}/...`), la période
+  est un filtre passé en paramètres d'URL ; sans paramètre, la période est la journée courante ;
+- un RDV n'est jamais supprimé : annuler, honorer ou ignorer sont des changements d'état (`PATCH`),
+  désignés par l'URL comme dans les liens HATEOAS de l'exemple du sujet ;
+- `400` : requête invalide (données ou paramètres) ; `404` : la ressource de l'URL n'existe pas ;
+  `409` : la requête est valide mais l'état de la ressource ne permet pas l'opération.
+
+### Format des réponses
+
+Une ressource, par exemple `GET /rdvs/2e1a7275-2593-3c04-9a4c-4e7cbada9541` :
 
 ```json
 {
-  "praticiens": [
-    { "id": "…", "nom": "Aubert", "prenom": "Louis", "ville": "Carre-sur-Turpin",
-      "email": "Louis.Aubert@free.fr", "specialite": "pédiatrie" }
+  "type": "ressource",
+  "rendez_vous": {
+    "id": "2e1a7275-2593-3c04-9a4c-4e7cbada9541",
+    "praticien_id": "4305f5e9-be5a-4ccf-8792-7e07d7017363",
+    "praticien_nom": "Cabinet Radio Plus",
+    "patient_id": "5abcdbc4-90c9-3b86-82a3-c4cf1f7377d0",
+    "patient_nom": "Marguerite Alves",
+    "date_debut": "04/12/2025 18:30",
+    "date_fin": "04/12/2025 18:50",
+    "date_creation": "25/11/2025",
+    "duree": 20,
+    "motif_visite": "Consultation",
+    "etat": "ANNULE"
+  },
+  "links": {
+    "self": { "href": "/rdvs/2e1a7275-2593-3c04-9a4c-4e7cbada9541" },
+    "praticien": { "href": "/praticiens/4305f5e9-be5a-4ccf-8792-7e07d7017363" },
+    "patient": { "href": "/patients/5abcdbc4-90c9-3b86-82a3-c4cf1f7377d0" },
+    "annuler": { "href": "/rdvs/2e1a7275-2593-3c04-9a4c-4e7cbada9541/annuler" },
+    "honorer": { "href": "/rdvs/2e1a7275-2593-3c04-9a4c-4e7cbada9541/honorer" },
+    "ignorer": { "href": "/rdvs/2e1a7275-2593-3c04-9a4c-4e7cbada9541/ignorer" }
+  }
+}
+```
+
+Une collection, par exemple `GET /praticiens/{id}/creneaux?debut=2025-12-05` :
+
+```json
+{
+  "type": "collection",
+  "count": 10,
+  "periode": { "debut": "2025-12-05", "fin": "2025-12-05" },
+  "creneaux": [
+    { "date_debut": "05/12/2025 09:00", "date_fin": "05/12/2025 09:30" }
+  ],
+  "links": {
+    "self": { "href": "/praticiens/4305f5e9-be5a-4ccf-8792-7e07d7017363/creneaux?debut=2025-12-05&fin=2025-12-05" },
+    "praticien": { "href": "/praticiens/4305f5e9-be5a-4ccf-8792-7e07d7017363" }
+  }
+}
+```
+
+- `GET /praticiens` : collection `praticiens`, chaque praticien avec son lien `self` ;
+- `GET /praticiens/{id}` : ressource `praticien` (titre, nom, prénom, spécialité, contacts, adresse)
+  avec les liens `self`, `rdvs` (agenda) et `creneaux` ;
+- `GET /praticiens/{id}/rdvs` : collection `rendez_vous` (horaires, patient, motif, état), chaque RDV
+  avec son lien `self`, et les liens `self`, `praticien` et `creneaux`.
+
+Les erreurs sont mises en forme par le gestionnaire d'erreurs par défaut de Slim :
+
+```json
+{
+  "message": "404 Not Found",
+  "exception": [
+    {
+      "type": "Slim\\Exception\\HttpNotFoundException",
+      "code": 404,
+      "message": "Rendez-vous b2dd56c2-700b-3b49-915d-d3be96f7f6a not found",
+      "file": "...",
+      "line": 32
+    }
   ]
 }
 ```
 
-### Détail d'un praticien (fonctionnalité 2)
-
-`GET /praticiens/{id}` → `200`, ou `404` si le praticien n'existe pas
-
-```json
-{
-  "id": "4305f5e9-be5a-4ccf-8792-7e07d7017363",
-  "titre": "Cab.",
-  "nom": "Radio Plus",
-  "prenom": "Cabinet",
-  "specialite": "ORL",
-  "contacts": { "email": "radio.plus@sante.fr", "telephone": "03 43 56 65 54" },
-  "adresse": { "ville": "Nancy" },
-  "rpps_id": null,
-  "accepte_nouveau_patient": true
-}
-```
-
-### Détail d'un RDV (fonctionnalité 3)
-
-`GET /rdvs/{id}` → `200` avec le RDV (même format que la réponse d'annulation ci-dessous),
-ou `404` si le RDV n'existe pas.
+Le détail `exception` n'est affiché que si `displayErrorDetails` vaut `true` dans `app/config/settings.php`.
 
 ### Créer un rendez-vous (fonctionnalité 5)
 
@@ -114,12 +180,6 @@ ou `404` si le RDV n'existe pas.
   "motif_visite": "CO"
 }
 ```
-
-| Code | Cas |
-|---|---|
-| 201 | RDV créé : le RDV est renvoyé en JSON, son URL est dans le header `Location` |
-| 400 | Données absentes ou mal formées, praticien ou patient inexistant, motif ou date non acceptés |
-| 409 | Le praticien n'est pas disponible : le RDV chevauche un RDV existant |
 
 Règles métier :
 
@@ -137,56 +197,15 @@ Traitement d'une demande :
    charge le patient et le praticien avec ses RDV du jour, crée l'entité avec `RendezVous::creer()`
    (motif, date, disponibilité) puis la sauvegarde avec `RendezVousRepository::ajouter()`.
 
-### Annuler un rendez-vous (fonctionnalité 6)
+### Cycle de vie d'un RDV
 
-`PATCH /rdvs/{id}`
-
-```json
-{ "status": "annule" }
-```
-
-| Code | Cas |
-|---|---|
-| 200 | RDV annulé, le RDV est renvoyé en JSON |
-| 400 | Corps de requête invalide |
-| 404 | RDV introuvable |
-| 409 | Annulation refusée : RDV passé, ou déjà annulé / honoré / ignoré |
-
-Exemple :
-
-```bash
-curl -X PATCH http://localhost:7080/rdvs/<id> \
-     -H "Content-Type: application/json" \
-     -d '{"status": "annule"}'
-```
-
-Réponse :
-
-```json
-{
-  "id": "…",
-  "praticien_id": "…",
-  "patient_id": "…",
-  "date_heure_debut": "2026-12-05 11:30:00",
-  "date_heure_fin": "2026-12-05 12:00:00",
-  "date_creation": "2026-12-01 00:00:00",
-  "duree": 30,
-  "motif_visite": "CI",
-  "status": -1,
-  "status_libelle": "ANNULE"
-}
-```
-
-Les RDV des données de départ sont tous passés. Pour tester une annulation réussie,
-créer un RDV futur, par exemple :
-
-```sql
-INSERT INTO rdv (id, praticien_id, patient_id, date_heure_debut, status, duree, date_heure_fin, date_creation, motif_visite)
-VALUES ('rdv-demo', '4305f5e9-be5a-4ccf-8792-7e07d7017363', 'da362a38-c1bf-39ed-8b2e-3bc99a86cfde',
-        NOW() + INTERVAL '7 days', 0, 30, NOW() + INTERVAL '7 days 30 minutes', NOW(), 'CI');
-```
+- annuler : RDV à l'état prévu et pas encore commencé ;
+- honorer / ignorer : RDV à l'état prévu et déjà commencé.
 
 Statuts d'un RDV : `0` prévu, `-1` annulé, `2` honoré, `3` ignoré (`-1` est la valeur utilisée par les données de départ).
+
+Les RDV des données de départ sont tous passés. Pour tester une annulation réussie,
+créer d'abord un RDV futur avec `POST /rdvs`.
 
 ## Réponses aux questions du TD 1.3
 
@@ -263,7 +282,8 @@ Racine PSR-4 : `toubilib\` → `app/src/`
 | `toubilib\application\exceptions` | Exceptions de l'application (`DonneesInvalidesException`) |
 | `toubilib\adapters\persistence` | Adaptateurs de persistance PDO |
 | `toubilib\adapters\controllers\actions` | Actions Slim |
-| `toubilib\adapters\controllers\middlewares` | Middlewares (`ValidationCreateRdvMiddleware`) et rendu JSON |
+| `toubilib\adapters\controllers\middlewares` | Middlewares (`ValidationCreateRdvMiddleware`, `CorsMiddleware`) et rendu JSON |
+| `toubilib\adapters\controllers\renderers` | Mise en forme des réponses avec liens HATEOAS (`RendezVousRenderer`) |
 | `tests\` → `app/tests/` | Tests Pest |
 
 Le domaine et l'application ne dépendent que des interfaces : les adaptateurs
@@ -283,7 +303,8 @@ sont branchés par le conteneur PHP-DI, dont les définitions sont réparties da
 | 1 | Lister les praticiens | Fait (TD2) | |
 | 2 | Détail d'un praticien | Fait (TD2) | |
 | 3 | Détail d'un RDV | Fait (TD2) | |
-| 4 | Agenda d'un praticien | À faire | |
+| 4 | Agenda d'un praticien | Fait (TD 1.4) | |
 | 5 | Créer un RDV | Fait (TD 1.3) | |
 | 6 | Annuler un RDV | Fait (TD1) | |
-| 7 | Créneaux occupés d'un praticien | À faire | |
+| 7 | Créneaux occupés d'un praticien | Fait (TD 1.4) | |
+| 9 | Cycle de vie des RDV (honoré, ignoré) | Fait (TD 1.4) | |

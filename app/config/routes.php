@@ -1,12 +1,18 @@
 <?php
 declare(strict_types=1);
 
+use Psr\Http\Message\ResponseInterface;
+use Psr\Http\Message\ServerRequestInterface;
 use Slim\App;
 use Slim\Routing\RouteCollectorProxy;
 use toubilib\adapters\controllers\actions\AfficherPraticienAction;
+use toubilib\adapters\controllers\actions\AgendaPraticienAction;
 use toubilib\adapters\controllers\actions\AfficherRendezVousAction;
 use toubilib\adapters\controllers\actions\AnnulerRendezVousAction;
 use toubilib\adapters\controllers\actions\CreerRendezVousAction;
+use toubilib\adapters\controllers\actions\HonorerRendezVousAction;
+use toubilib\adapters\controllers\actions\IgnorerRendezVousAction;
+use toubilib\adapters\controllers\actions\ListerCreneauxAction;
 use toubilib\adapters\controllers\actions\ListerPraticiensAction;
 use toubilib\adapters\controllers\middlewares\ValidationCreateRdvMiddleware;
 
@@ -18,6 +24,10 @@ return function (App $app): App {
         $group->get('', ListerPraticiensAction::class)->setName('praticiens-lister');
         // fonctionnalite 2 : detail d'un praticien
         $group->get('/{id}', AfficherPraticienAction::class)->setName('praticien-afficher');
+        // fonctionnalite 4 : agenda d'un praticien (?debut=AAAA-MM-JJ&fin=AAAA-MM-JJ)
+        $group->get('/{id}/rdvs', AgendaPraticienAction::class)->setName('praticien-agenda');
+        // fonctionnalite 7 : creneaux occupes d'un praticien (?debut=AAAA-MM-JJ&fin=AAAA-MM-JJ)
+        $group->get('/{id}/creneaux', ListerCreneauxAction::class)->setName('praticien-creneaux');
     });
 
     $app->group('/rdvs', function (RouteCollectorProxy $group) {
@@ -27,9 +37,16 @@ return function (App $app): App {
             ->setName('rdv-creer');
         // fonctionnalite 3 : detail d'un rendez-vous
         $group->get('/{id}', AfficherRendezVousAction::class)->setName('rdv-afficher');
-        // annulation d'un rendez-vous : modification partielle de la ressource
-        // PATCH /rdvs/{id} avec le corps {"status": "annule"}
-        $group->patch('/{id}', AnnulerRendezVousAction::class)->setName('rdv-annuler');
+        // fonctionnalite 6 : annuler un rendez-vous (changement d'etat du RDV)
+        $group->patch('/{id}/annuler', AnnulerRendezVousAction::class)->setName('rdv-annuler');
+        // fonctionnalite 9 : marquer un rendez-vous comme honore ou ignore
+        $group->patch('/{id}/honorer', HonorerRendezVousAction::class)->setName('rdv-honorer');
+        $group->patch('/{id}/ignorer', IgnorerRendezVousAction::class)->setName('rdv-ignorer');
+    });
+
+    // requetes de pre-verification CORS : reponse vide, les headers sont ajoutes par CorsMiddleware
+    $app->options('/{routes:.+}', function (ServerRequestInterface $rq, ResponseInterface $rs) {
+        return $rs;
     });
 
     return $app;

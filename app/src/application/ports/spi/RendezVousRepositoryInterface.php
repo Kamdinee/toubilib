@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace toubilib\application\ports\spi;
 
+use DateTimeImmutable;
 use toubilib\domain\entities\RendezVous;
 
 interface RendezVousRepositoryInterface {
@@ -22,5 +23,12 @@ interface RendezVousRepositoryInterface {
      * Sauvegarde un nouveau rendez-vous
      */
     public function ajouter(RendezVous $rdv): void;
-}
 
+    /**
+     * Rendez-vous d'un praticien commencant entre le debut et la fin donnes (inclus),
+     * tries par date de debut
+     *
+     * @return RendezVous[]
+     */
+    public function findByPraticienEntre(string $praticienId, DateTimeImmutable $debut, DateTimeImmutable $fin): array;
+}

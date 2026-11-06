@@ -3,7 +3,9 @@ declare(strict_types=1);
 
 namespace toubilib\application\usecases;
 
+use DateTimeImmutable;
 use toubilib\application\dto\CreateRdvDTO;
+use toubilib\application\dto\CreneauDTO;
 use toubilib\application\dto\RendezVousDTO;
 use toubilib\application\ports\api\ServiceRendezVousInterface;
 use toubilib\application\ports\spi\PatientRepositoryInterface;
@@ -11,6 +13,9 @@ use toubilib\application\ports\spi\PraticienRepositoryInterface;
 use toubilib\application\ports\spi\RendezVousRepositoryInterface;
 use toubilib\application\validators\RdvValidator;
 use toubilib\domain\entities\RendezVous;
+use toubilib\domain\entities\RendezVousStatus;
+use toubilib\domain\exceptions\PatientNotFoundException;
+use toubilib\domain\exceptions\PraticienNotFoundException;
 
 class ServiceRendezVous implements ServiceRendezVousInterface {
 
@@ -27,7 +32,7 @@ class ServiceRendezVous implements ServiceRendezVousInterface {
      * @throws RendezVousNotFoundException si le RDV n'existe pas
      */
     public function consulter(string $id): RendezVousDTO {
-        return RendezVousDTO::fromEntity($this->rendezVousRepository->findById($id));
+        return $this->versDTO($this->rendezVousRepository->findById($id));
     }
 
     /**
@@ -51,7 +56,7 @@ class ServiceRendezVous implements ServiceRendezVousInterface {
         // 4 persistance du nouveau rendez-vous
         $this->rendezVousRepository->ajouter($rdv);
 
-        return RendezVousDTO::fromEntity($rdv);
+        return RendezVousDTO::fromEntity($rdv, $praticien, $patient);
     }
 
     /**
@@ -71,7 +76,89 @@ class ServiceRendezVous implements ServiceRendezVousInterface {
         $this->rendezVousRepository->save($rdv);
 
         // 4 retourner les informations sous forme de DTO
-        return RendezVousDTO::fromEntity($rdv);
+        return $this->versDTO($rdv);
+    }
+
+    /**
+     * Marque un rendez-vous comme honore et sauvegarde sa modification d'etat
+     */
+    public function honorer(string $id): RendezVousDTO {
+        $rdv = $this->rendezVousRepository->findById($id);
+        $rdv->honorer();
+        $this->rendezVousRepository->save($rdv);
+
+        return $this->versDTO($rdv);
+    }
+
+    /**
+     * Marque un rendez-vous comme ignore et sauvegarde sa modification d'etat
+     */
+    public function ignorer(string $id): RendezVousDTO {
+        $rdv = $this->rendezVousRepository->findById($id);
+        $rdv->ignorer();
+        $this->rendezVousRepository->save($rdv);
+
+        return $this->versDTO($rdv);
+    }
+
+    /**
+     * Creneaux occupes d'un praticien : ses RDV non annules entre deux dates
+     *
+     * @throws PraticienNotFoundException si le praticien n'existe pas
+     */
+    public function listerCreneauxOccupes(string $praticienId, DateTimeImmutable $debut, DateTimeImmutable $fin): array {
+        // leve PraticienNotFoundException si le praticien n'existe pas
+        $this->praticienRepository->findById($praticienId);
+
+        $rdvs = array_filter(
+            $this->rendezVousRepository->findByPraticienEntre($praticienId, $debut, $fin),
+            fn (RendezVous $rdv) => $rdv->getStatus() !== RendezVousStatus::ANNULE
+        );
+
+        return array_values(array_map(fn (RendezVous $rdv) => CreneauDTO::fromEntity($rdv), $rdvs));
+    }
+
+    /**
+     * Agenda d'un praticien : ses RDV entre deux dates, avec le nom des patients
+     *
+     * @throws PraticienNotFoundException si le praticien n'existe pas
+     */
+    public function agendaPraticien(string $praticienId, DateTimeImmutable $debut, DateTimeImmutable $fin): array {
+        $praticien = $this->praticienRepository->findById($praticienId);
+
+        $patients = [];
+        $agenda = [];
+        foreach ($this->rendezVousRepository->findByPraticienEntre($praticienId, $debut, $fin) as $rdv) {
+            // chaque patient n'est charge qu'une fois
+            $patientId = $rdv->getPatientId();
+            if (!array_key_exists($patientId, $patients)) {
+                try {
+                    $patients[$patientId] = $this->patientRepository->findById($patientId);
+                } catch (PatientNotFoundException $e) {
+                    $patients[$patientId] = null;
+                }
+            }
+            $agenda[] = RendezVousDTO::fromEntity($rdv, $praticien, $patients[$patientId]);
+        }
+
+        return $agenda;
+    }
+
+    /**
+     * Construit le DTO d'un rendez-vous avec les noms du praticien et du patient
+     */
+    private function versDTO(RendezVous $rdv): RendezVousDTO {
+        try {
+            $praticien = $this->praticienRepository->findById($rdv->getPraticienId());
+        } catch (PraticienNotFoundException $e) {
+            $praticien = null;
+        }
+        try {
+            $patient = $this->patientRepository->findById($rdv->getPatientId());
+        } catch (PatientNotFoundException $e) {
+            $patient = null;
+        }
+
+        return RendezVousDTO::fromEntity($rdv, $praticien, $patient);
     }
 }
-

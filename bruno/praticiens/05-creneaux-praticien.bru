@@ -1,0 +1,21 @@
+meta {
+  name: Creneaux occupes d'un praticien
+  type: http
+  seq: 5
+}
+
+get {
+  url: {{baseUrl}}/praticiens/{{praticienId}}/creneaux?debut=2025-12-05&fin=2025-12-05
+  body: none
+  auth: none
+}
+
+params:query {
+  debut: 2025-12-05
+  fin: 2025-12-05
+}
+
+assert {
+  res.status: eq 200
+  res.body.type: eq collection
+}

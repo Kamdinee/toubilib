@@ -113,3 +113,14 @@ it('devrait refuser une date non acceptee par le praticien', function () {
     expect(fn () => serviceCreationRdv()->creerRendezVous($samedi))->toThrow(RendezVousInvalideException::class)
         ->and(fn () => serviceCreationRdv()->creerRendezVous($soir))->toThrow(RendezVousInvalideException::class);
 });
+
+it('devrait retourner le RDV avec les noms du praticien et du patient et le libelle du motif', function () {
+    [$service] = contexteCreationRdv();
+    $cree = $service->creerRendezVous(new CreateRdvDTO('prat-1', 'pat-1', '2030-01-07 10:00', 'CI'));
+
+    $dto = $service->consulter($cree->id);
+
+    expect($dto->praticienNom)->toBe('Marine Paul')
+        ->and($dto->patientNom)->toBe('Denis Teixeira')
+        ->and($dto->motifLibelle)->toBe('Consultation initiale');
+});

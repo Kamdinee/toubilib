@@ -3,7 +3,9 @@ declare(strict_types=1);
 
 namespace toubilib\application\ports\api;
 
+use DateTimeImmutable;
 use toubilib\application\dto\CreateRdvDTO;
+use toubilib\application\dto\CreneauDTO;
 use toubilib\application\dto\RendezVousDTO;
 
 interface ServiceRendezVousInterface {
@@ -29,5 +31,36 @@ interface ServiceRendezVousInterface {
      * @throws StatusChangeNotAllowedException si le RDV ne peut pas etre annule
      */
     public function annuler(string $id): RendezVousDTO;
-}
 
+    /**
+     * Marque un rendez-vous comme honore
+     *
+     * @throws RendezVousNotFoundException si le RDV n'existe pas
+     * @throws StatusChangeNotAllowedException si le changement d'etat est refuse
+     */
+    public function honorer(string $id): RendezVousDTO;
+
+    /**
+     * Marque un rendez-vous comme ignore
+     *
+     * @throws RendezVousNotFoundException si le RDV n'existe pas
+     * @throws StatusChangeNotAllowedException si le changement d'etat est refuse
+     */
+    public function ignorer(string $id): RendezVousDTO;
+
+    /**
+     * Creneaux occupes (RDV non annules) d'un praticien entre deux dates
+     *
+     * @return CreneauDTO[]
+     * @throws PraticienNotFoundException si le praticien n'existe pas
+     */
+    public function listerCreneauxOccupes(string $praticienId, DateTimeImmutable $debut, DateTimeImmutable $fin): array;
+
+    /**
+     * Agenda d'un praticien entre deux dates : ses rendez-vous avec patients et motifs
+     *
+     * @return RendezVousDTO[]
+     * @throws PraticienNotFoundException si le praticien n'existe pas
+     */
+    public function agendaPraticien(string $praticienId, DateTimeImmutable $debut, DateTimeImmutable $fin): array;
+}

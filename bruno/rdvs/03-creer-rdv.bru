@@ -1,0 +1,42 @@
+meta {
+  name: Creer un rendez-vous
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{baseUrl}}/rdvs
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "praticien_id": "{{praticienId}}",
+    "patient_id": "{{patientId}}",
+    "date_heure_debut": "{{dateRdv}}",
+    "motif_visite": "CO"
+  }
+}
+
+script:pre-request {
+  // creneau libre au hasard : un lundi de 2031 a 2035, entre 9h et 18h30
+  const date = new Date(Date.UTC(2031 + Math.floor(Math.random() * 5), 0, 1));
+  date.setUTCDate(date.getUTCDate() + ((8 - date.getUTCDay()) % 7) + 7 * Math.floor(Math.random() * 50));
+  const minutes = 9 * 60 + 30 * Math.floor(Math.random() * 19);
+  const pad = (n) => String(n).padStart(2, '0');
+  const jour = `${date.getUTCFullYear()}-${pad(date.getUTCMonth() + 1)}-${pad(date.getUTCDate())}`;
+  bru.setVar('dateRdv', `${jour} ${pad(Math.floor(minutes / 60))}:${pad(minutes % 60)}`);
+}
+
+script:post-response {
+  // le RDV cree est utilise par la requete d'annulation
+  if (res.status === 201) {
+    bru.setVar('rdvCree', res.body.rendez_vous.id);
+  }
+}
+
+assert {
+  res.status: eq 201
+  res.headers.location: isDefined
+}

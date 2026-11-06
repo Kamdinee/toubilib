@@ -19,6 +19,13 @@ class Praticien {
         'CS' => 15, // consultation de suivi
     ];
 
+    /** Libelles des motifs de visite */
+    public const LIBELLES_MOTIFS = [
+        'CI' => 'Consultation initiale',
+        'CO' => 'Consultation',
+        'CS' => 'Consultation de suivi',
+    ];
+
     /** Plage horaire des RDV acceptes */
     public const HEURE_DEBUT = '09:00';
     public const HEURE_FIN = '19:00';
