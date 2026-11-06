@@ -75,6 +75,23 @@ class RendezVous {
     }
 
     /**
+     * Indique si ce rendez-vous chevauche un autre rendez-vous.
+     *
+     * Deux RDV [debutA, finA[ et [debutB, finB[ se chevauchent si et seulement si
+     *     debutA < finB  ET  debutB < finA
+     * Un RDV qui commence exactement a la fin d'un autre ne le chevauche donc pas.
+     * Un RDV annule ne bloque plus son creneau : il ne chevauche rien.
+     */
+    public function chevauche(RendezVous $autre): bool {
+        if ($this->status === RendezVousStatus::ANNULE || $autre->status === RendezVousStatus::ANNULE) {
+            return false;
+        }
+
+        return $this->dateHeureDebut < $autre->dateHeureFin
+            && $autre->dateHeureDebut < $this->dateHeureFin;
+    }
+
+    /**
      * annule le rendez-vous si les conditions métier sont respectées
      * 
      * @throws StatusChangeNotAllowedException si le RDV est déjà annulé/honoré/ignoré ou passé.
