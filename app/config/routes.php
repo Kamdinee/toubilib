@@ -27,9 +27,8 @@ return function (App $app): App {
             ->setName('rdv-creer');
         // fonctionnalite 3 : detail d'un rendez-vous
         $group->get('/{id}', AfficherRendezVousAction::class)->setName('rdv-afficher');
-        // annulation d'un rendez-vous : modification partielle de la ressource
-        // PATCH /rdvs/{id} avec le corps {"status": "annule"}
-        $group->patch('/{id}', AnnulerRendezVousAction::class)->setName('rdv-annuler');
+        // fonctionnalite 6 : annuler un rendez-vous (changement d'etat du RDV)
+        $group->patch('/{id}/annuler', AnnulerRendezVousAction::class)->setName('rdv-annuler');
     });
 
     return $app;
