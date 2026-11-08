@@ -99,13 +99,13 @@ avec ses définitions dans `app/config/` : `settings.php` (configuration), `serv
 
 ## Tableau de bord
 
-| # | Fonctionnalité | État | Réalisé par |
-|---|---|---|---|
-| 1 | Lister les praticiens | Fait | |
-| 2 | Détail d'un praticien | Fait | |
-| 3 | Détail d'un RDV | Fait | |
-| 4 | Agenda d'un praticien | Fait | |
-| 5 | Créer un RDV | Fait | |
-| 6 | Annuler un RDV | Fait | |
-| 7 | Créneaux occupés d'un praticien | Fait | |
-| 9 | Honorer / ignorer un RDV | Fait | |
+| # | Fonctionnalité | État |
+|---|---|---|
+| 1 | Lister les praticiens | Fait |
+| 2 | Détail d'un praticien | Fait |
+| 3 | Détail d'un RDV | Fait |
+| 4 | Agenda d'un praticien | Fait |
+| 5 | Créer un RDV | Fait |
+| 6 | Annuler un RDV | Fait |
+| 7 | Créneaux occupés d'un praticien | Fait |
+| 9 | Honorer / ignorer un RDV | Fait |
